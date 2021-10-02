@@ -17,7 +17,7 @@ export const DemoTable = (): JSX.Element => {
   const {
     state: [editableRows, setEditableRows],
     setRows,
-    updateRowCellByRowId,
+    mkUpdateRowCellByRowId,
     dirtyRows,
   } = useEditableRows<User, 'username'>('username', [
     { username: 'dan', fullName: 'Toucan Dan', credits: 10 },
@@ -73,7 +73,7 @@ export const DemoTable = (): JSX.Element => {
         className="demo-table"
         rowIdKey="username"
         editableRows={editableRows}
-        updateRowCellByKey={updateRowCellByRowId}
+        mkUpdateRowCellByRowId={mkUpdateRowCellByRowId}
         renderRow={(renderedCells, isDirty) => <tr className={isDirty ? 'is-dirty' : undefined}>{renderedCells}</tr>}
         renderTable={(renderedHeaderRow, renderedRows) => (
           <table>

@@ -13,6 +13,7 @@ const mkEditable = <Row,>(row: Row): Editable<Row> => ({
 type CellRenderer<Row, ColumnKey extends keyof Row> = (
   cellState: StateRef<Row[ColumnKey]>,
   isDirty: boolean,
+  pristineValue: Row[ColumnKey],
 ) => ReactElement
 
 // defaultCellRenderer has type `CellRenderer<Row, ColumnKey extends keyof Row>` but TypeScript cannot express this.
@@ -41,11 +42,16 @@ const defaultTableRenderer: TableRenderer = (renderedHeaderCells, renderedRows) 
 type EditableColumn<Row, ColumnKey extends keyof Row> = {
   key: ColumnKey
   title: string
+  eq?: (pristine: Row[ColumnKey], current: Row[ColumnKey]) => boolean
   renderHeaderCell?: HeaderCellRenderer
   renderCell?: CellRenderer<Row, ColumnKey>
 }
 
 const isEditableColumn = <Row,>(column: Column<Row>): column is EditableColumn<Row, keyof Row> => 'key' in column
+
+const filterEditablecolumns = <Row,>(columns: Column<Row>[]): EditableColumn<Row, keyof Row>[] => {
+  return columns.filter(isEditableColumn)
+}
 
 type MetaColumnConfig<Row> = {
   // A column that's not for a editing a specific field, but for actions on the row, like delete, undo, etc.
@@ -80,10 +86,10 @@ const renderEditableCell = <Row, ColumnKey extends keyof Row>(
   const updateCell = updateRowCell(column.key)
   const cellStateRef: StateRef<Row[ColumnKey]> = [cellValue, updateCell]
   const pristineValue = editableRow.pristine[column.key]
-  const isDirty = cellValue !== pristineValue
+  const isDirty = column.eq !== undefined ? !column.eq(cellValue, pristineValue) : cellValue !== pristineValue
 
   const cellRenderer = column.renderCell ?? defaultCellRenderer
-  return cellRenderer(cellStateRef, isDirty)
+  return cellRenderer(cellStateRef, isDirty, pristineValue)
 }
 
 const renderMetaCell = <Row,>(column: MetaColumnConfig<Row>, editableRow: Editable<Row>) =>
@@ -135,7 +141,9 @@ type EditableTableProps<Row, RowIdKey extends keyof Row> = {
   className?: string
   rowIdKey: RowIdKey
   editableRows: Editable<Row>[]
-  updateRowCellByKey: (rowKey: Row[RowIdKey]) => UpdateRowCell<Row, keyof Row>
+  mkUpdateRowCellByRowId: (
+    equalityByRowKey: EqualityByRowKey<Row>,
+  ) => (rowKey: Row[RowIdKey]) => UpdateRowCell<Row, keyof Row>
   renderRow?: RowRenderer
   renderTable?: TableRenderer
   columns: ColumnsProp<Row>
@@ -145,11 +153,12 @@ export const EditableTable = <Row, RowIdKey extends keyof Row>({
   className,
   rowIdKey,
   editableRows,
-  updateRowCellByKey,
+  mkUpdateRowCellByRowId,
   renderRow,
   renderTable,
   columns,
 }: EditableTableProps<Row, RowIdKey>): ReactElement => {
+  const udateRowCellByRowId = mkUpdateRowCellByRowId(getColEqualityByRowKey(filterEditablecolumns(columns)))
   const renderedHeaderCells = columns.map((column, index) => (
     // Index keys are fine since columns are assumed to be constant.
     <HeaderCell key={index} title={column.title} renderHeaderCell={column.renderHeaderCell} />
@@ -162,7 +171,7 @@ export const EditableTable = <Row, RowIdKey extends keyof Row>({
         key={key}
         editableRow={row}
         renderRow={renderRow}
-        updateRowCell={updateRowCellByKey(row.current[rowIdKey])}
+        updateRowCell={udateRowCellByRowId(row.current[rowIdKey])}
       />
     )
   })
@@ -172,10 +181,25 @@ export const EditableTable = <Row, RowIdKey extends keyof Row>({
   return className === undefined ? renderedTable : React.cloneElement(renderedTable, { className: className })
 }
 
+// Record for keeping column eq functions.
+type EqualityByRowKey<Row> = {
+  [K in keyof Row]?: EditableColumn<Row, K>['eq']
+}
+
+const getColEqualityByRowKey = <Row,>(columns: EditableColumn<Row, keyof Row>[]): EqualityByRowKey<Row> => {
+  const columnRecord: EqualityByRowKey<Row> = {}
+  for (const columnDistr of columns) {
+    const column = columnDistr as EditableColumn<Row, keyof Row>
+    columnRecord[column.key] = column.eq
+  }
+  return columnRecord
+}
+
 const applyCellUpdate = <S,>(prevState: S, update: React.SetStateAction<S>) =>
   typeof update === 'function' ? (update as (prevState: S) => S)(prevState) : update
 
 const applyRowUpdate = <Row, ColumnKey extends keyof Row>(
+  equalityByRowKey: EqualityByRowKey<Row>,
   previousEditableRow: Editable<Row>,
   columnKey: ColumnKey,
   update: React.SetStateAction<Row[ColumnKey]>,
@@ -185,21 +209,30 @@ const applyRowUpdate = <Row, ColumnKey extends keyof Row>(
   const newCellValue = applyCellUpdate(previousCellValue, update)
   const newRow = { ...previousRow, [columnKey]: newCellValue }
   const rowKeys = Object.keys(newRow) as (keyof Row)[]
-  const isDirty = rowKeys.some((key) => newRow[key] !== previousEditableRow.pristine[key])
+
+  const isDirty = rowKeys.some((key) => {
+    const eq = equalityByRowKey[key]
+    return eq !== undefined
+      ? !eq(newRow[key], previousEditableRow.pristine[key])
+      : newRow[key] !== previousEditableRow.pristine[key]
+  })
 
   return { ...previousEditableRow, current: newRow, isDirty }
 }
 
-const createUpdateRowByRowId =
+const createMkUpdateRowByRowId =
   <Row, RowIdKey extends keyof Row, ColumnKey extends keyof Row>(
     rowIdKey: RowIdKey,
     setRows: React.Dispatch<React.SetStateAction<Editable<Row>[]>>,
   ) =>
+  (equalityByRowKey: EqualityByRowKey<Row>) =>
   (rowId: Row[RowIdKey]) =>
   (columnKey: ColumnKey): React.Dispatch<React.SetStateAction<Row[ColumnKey]>> =>
   (update: React.SetStateAction<Row[ColumnKey]>): void =>
     setRows((rows) =>
-      rows.map((row) => (row.current[rowIdKey] === rowId ? applyRowUpdate(row, columnKey, update) : row)),
+      rows.map((row) =>
+        row.current[rowIdKey] === rowId ? applyRowUpdate(equalityByRowKey, row, columnKey, update) : row,
+      ),
     )
 
 export const useEditableRows = <Row, RowIdKey extends keyof Row>(
@@ -208,7 +241,9 @@ export const useEditableRows = <Row, RowIdKey extends keyof Row>(
 ): {
   state: [Editable<Row>[], React.Dispatch<React.SetStateAction<Editable<Row>[]>>]
   setRows: (rows: Row[]) => void
-  updateRowCellByRowId: (rowKey: Row[RowIdKey]) => UpdateRowCell<Row, keyof Row>
+  mkUpdateRowCellByRowId: (
+    equalityByRowKey: EqualityByRowKey<Row>,
+  ) => (rowKey: Row[RowIdKey]) => UpdateRowCell<Row, keyof Row>
   dirtyRows: Editable<Row>[]
 } => {
   const state = useState<Editable<Row>[]>(rows.map(mkEditable))
@@ -232,9 +267,9 @@ export const useEditableRows = <Row, RowIdKey extends keyof Row>(
         ...newRows,
       ]
     })
-  const updateRowCellByRowId = createUpdateRowByRowId(rowIdKey, setEditableRows)
+  const mkUpdateRowCellByRowId = createMkUpdateRowByRowId(rowIdKey, setEditableRows)
   const dirtyRows = editableRows.filter((row) => row.isDirty)
 
-  return { state, setRows, updateRowCellByRowId, dirtyRows }
+  return { state, setRows, mkUpdateRowCellByRowId, dirtyRows }
 }
 // TODO: Also add a setAll? Or a clear?
