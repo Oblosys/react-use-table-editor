@@ -56,12 +56,20 @@ td.delete-cell {
   background-color: #dce4ff;
 }
 
-/* .demo-table input.is-dirty {
+.demo-table input.is-dirty {
   background-color: #dce4ff;
-} */
+}
 
 input.integer-input {
   width: 50px;
+}
+
+input.name-input {
+  width: 70px;
+}
+
+input.name-input:first-child {
+  margin-right: 5px;
 }
 
 .debug-table {

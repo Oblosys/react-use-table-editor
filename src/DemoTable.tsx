@@ -1,6 +1,6 @@
 import faker from 'faker'
 
-import { IntegerInput } from './DemoInputs'
+import { FullNameInput, IntegerInput } from './DemoInputs'
 import { Editable, EditableTable, useEditableRows } from './lib/EditableTable'
 
 import './DemoTable.css'
@@ -9,7 +9,7 @@ const sum = (ns: number[]) => ns.reduce((s, n) => s + n, 0)
 
 interface User {
   username: string
-  fullName: string
+  fullName: [string, string]
   credits: number
 }
 
@@ -20,10 +20,10 @@ export const DemoTable = (): JSX.Element => {
     mkUpdateRowCellByRowId,
     dirtyRows,
   } = useEditableRows<User, 'username'>('username', [
-    { username: 'dan', fullName: 'Toucan Dan', credits: 10 },
-    { username: 'dave', fullName: 'Chiquita Dave', credits: 80 },
-    { username: 'truck', fullName: 'Truck Shepard', credits: 30 },
-    { username: 'vader', fullName: 'Dark Vader', credits: 75 },
+    { username: 'dan', fullName: ['Toucan', 'Dan'], credits: 10 },
+    { username: 'dave', fullName: ['Chiquita', 'Dave'], credits: 80 },
+    { username: 'truck', fullName: ['Truck', 'Shepard'], credits: 30 },
+    { username: 'vader', fullName: ['Dark', 'Vader'], credits: 75 },
   ])
 
   const handleAddRow = () => {
@@ -33,7 +33,7 @@ export const DemoTable = (): JSX.Element => {
     setRows([
       {
         username: faker.internet.userName(firstName, lastName),
-        fullName: `${firstName} ${lastName}`,
+        fullName: [firstName, lastName],
         credits: Math.floor(Math.random() * 200),
       },
     ])
@@ -105,16 +105,17 @@ export const DemoTable = (): JSX.Element => {
           {
             key: 'fullName',
             title: 'Full name',
-            renderCell: ([fullname, setFullName], isDirty) => (
-              <td>
-                <input
-                  className={isDirty ? 'is-dirty' : undefined}
-                  type="text"
-                  value={fullname}
-                  onChange={(e) => setFullName(e.target.value)}
-                />
-              </td>
-            ),
+            eq: ([pristineFirst, pristineLast], [currentFirst, currentLast]) =>
+              pristineFirst === currentFirst && pristineLast === currentLast,
+            renderCell: (fullNameState, _isDirty, [pristineFirst, pristineLast]) => {
+              const [[firstName, lastName]] = fullNameState
+              const isDirty: [boolean, boolean] = [firstName !== pristineFirst, lastName !== pristineLast]
+              return (
+                <td>
+                  <FullNameInput stateRef={fullNameState} isDirty={isDirty} />
+                </td>
+              )
+            },
           },
           {
             key: 'credits',
