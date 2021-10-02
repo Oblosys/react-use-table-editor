@@ -21,6 +21,7 @@
     "eject": "react-scripts eject",
     "lint-check": "eslint --cache .",
     "lint-fix": "npm run lint-check -- --fix",
+    "prepare": "husky install",
     "prettier-check": "prettier -l '**/*.{ts,tsx,json,md,js,scss,yml}'",
     "prettier-fix": "npm run prettier-check -- --write",
     "test": "npm run test-watch -- --watchAll=false",
@@ -53,6 +54,7 @@
     "eslint-plugin-jest": "24.5.0",
     "eslint-plugin-react": "7.26.1",
     "eslint-plugin-react-hooks": "4.2.0",
+    "husky": "^7.0.2",
     "prettier": "^2.4.1"
   }
 }
