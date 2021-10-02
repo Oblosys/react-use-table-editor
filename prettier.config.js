@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 module.exports = {
   $schema: 'http://json.schemastore.org/prettierrc',
   arrowParens: 'always',
