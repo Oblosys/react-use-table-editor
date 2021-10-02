@@ -39,6 +39,9 @@ export const DemoTable = (): JSX.Element => {
     ])
   }
 
+  // A real-world handleSave can post the changes to a server and set the rows on success.
+  const handleSave = () => setRows(dirtyRows.map((row) => row.current))
+
   const handleDeleteRow = (userToDelete: Editable<User>) =>
     setEditableRows((users) => users.filter(({ current: { username } }) => username !== userToDelete.current.username))
 
@@ -56,9 +59,15 @@ export const DemoTable = (): JSX.Element => {
       </div>
       <div className="table-stats">
         <input className="add-row-button" type="button" value="Add row" onClick={handleAddRow} />
+        <input
+          className="save-button"
+          type="button"
+          value="Save"
+          disabled={dirtyRows.length === 0}
+          onClick={handleSave}
+        />
         Row count: {editableRows.length}, Modified: {dirtyRows.length}
       </div>
-      <div></div>
       <EditableTable<User, 'username'> // Type params can be inferred, but specifying them give more readable errors.
         className="demo-table"
         rowIdKey="username"
