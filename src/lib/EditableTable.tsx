@@ -15,9 +15,9 @@ type CellRenderer<Row, ColumnKey extends keyof Row> = (
   isDirty: boolean,
 ) => JSX.Element
 
-type RowRenderer = (cells: JSX.Element[], isDirty: boolean) => JSX.Element
+type RowRenderer = (renderedCells: JSX.Element[], isDirty: boolean) => JSX.Element
 
-const defaultRowRenderer: RowRenderer = (cells) => <tr>{cells}</tr>
+const defaultRowRenderer: RowRenderer = (renderedCells) => <tr>{renderedCells}</tr>
 
 type EditableColumn<Row, ColumnKey extends keyof Row> = {
   key: ColumnKey

@@ -74,7 +74,7 @@ export const DemoTable = (): JSX.Element => {
         rowIdKey="username"
         editableRows={editableRows}
         updateRowCellByKey={updateRowCellByRowId}
-        renderRow={(cells, isDirty) => <tr className={isDirty ? 'is-dirty' : undefined}>{cells}</tr>}
+        renderRow={(renderedCells, isDirty) => <tr className={isDirty ? 'is-dirty' : undefined}>{renderedCells}</tr>}
         columns={[
           {
             title: 'Delete',
