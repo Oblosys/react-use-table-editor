@@ -54,6 +54,7 @@ module.exports = {
     'jest/no-identical-title': 'error',
     'jest/prefer-to-have-length': 'warn',
     'jest/valid-expect': 'warn',
+    'react/display-name': 'off', // Triggers incorrectly, and is about obsolete createReactClass anyway.
     'sort-imports': ['warn', { ignoreDeclarationSort: true }], // `import {B, A} from ..` ~> `import {A, B} from ..`
   },
 }
