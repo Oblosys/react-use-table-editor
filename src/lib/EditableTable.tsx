@@ -25,9 +25,11 @@ type HeaderCellRenderer = (title?: string) => ReactElement
 
 const defaultHeaderCellRenderer: HeaderCellRenderer = (title) => <th>{title}</th>
 
-type RowRenderer = (renderedCells: ReactElement[], isDirty: boolean) => ReactElement
+type RowRenderer<Row> = (renderedCells: ReactElement[], isDirty: boolean, pristineRow: Row) => ReactElement
 
-const defaultRowRenderer: RowRenderer = (renderedCells) => <tr>{renderedCells}</tr>
+const defaultRowRenderer: RowRenderer<unknown> = (renderedCells: ReactElement[]): ReactElement => (
+  <tr>{renderedCells}</tr>
+)
 
 type TableRenderer = (renderedHeaderCells: ReactElement[], renderedRows: ReactElement[]) => ReactElement
 
@@ -110,7 +112,7 @@ type EditableRowProps<Row> = {
   columns: Columns<Row>
   editableRow: Editable<Row>
   updateRowCell: UpdateRowCell<Row, keyof Row>
-  renderRow?: RowRenderer
+  renderRow?: RowRenderer<Row>
 }
 
 const EditableRow = <Row,>({
@@ -122,7 +124,7 @@ const EditableRow = <Row,>({
   const cells = columns.map((column, index) => (
     <EditableCell key={`cell__${index}`} {...{ editableRow, updateRowCell, column }} />
   ))
-  return renderRow(cells, editableRow.isDirty)
+  return renderRow(cells, editableRow.isDirty, editableRow.pristine)
 }
 
 interface HeaderCellProps {
@@ -144,7 +146,7 @@ type EditableTableProps<Row, RowIdKey extends keyof Row> = {
   mkUpdateRowCellByRowId: (
     equalityByRowKey: EqualityByRowKey<Row>,
   ) => (rowKey: Row[RowIdKey]) => UpdateRowCell<Row, keyof Row>
-  renderRow?: RowRenderer
+  renderRow?: RowRenderer<Row>
   renderTable?: TableRenderer
   columns: ColumnsProp<Row>
 }
