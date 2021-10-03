@@ -15,6 +15,11 @@ type CellRenderer<Row, ColumnKey extends keyof Row> = (
   isDirty: boolean,
 ) => JSX.Element
 
+// defaultCellRenderer has type `CellRenderer<Row, ColumnKey extends keyof Row>` but TypeScript cannot express this.
+const defaultCellRenderer = <Row, ColumnKey extends keyof Row>([cellValue]: StateRef<Row[ColumnKey]>): JSX.Element => (
+  <td>{'' + cellValue}</td>
+)
+
 type RowRenderer = (renderedCells: JSX.Element[], isDirty: boolean) => JSX.Element
 
 const defaultRowRenderer: RowRenderer = (renderedCells) => <tr>{renderedCells}</tr>
@@ -23,10 +28,10 @@ type EditableColumn<Row, ColumnKey extends keyof Row> = {
   key: ColumnKey
   title: string
   thClassName?: string
-  renderCell: CellRenderer<Row, ColumnKey>
+  renderCell?: CellRenderer<Row, ColumnKey>
 }
 
-const isEditableColumn = <Row,>(column: Column<Row>): column is EditableColumn<Row, keyof Row> => 'renderCell' in column
+const isEditableColumn = <Row,>(column: Column<Row>): column is EditableColumn<Row, keyof Row> => 'key' in column
 
 type MetaColumnConfig<Row> = {
   // A column that's not for a editing a specific field, but for actions on the row, like delete, undo, etc.
@@ -62,7 +67,8 @@ const renderEditableCell = <Row, ColumnKey extends keyof Row>(
   const pristineValue = editableRow.pristine[column.key]
   const isDirty = cellValue !== pristineValue
 
-  return column.renderCell(cellStateRef, isDirty)
+  const cellRenderer = column.renderCell ?? defaultCellRenderer
+  return cellRenderer(cellStateRef, isDirty)
 }
 
 const renderMetaCell = <Row,>(column: MetaColumnConfig<Row>, editableRow: Editable<Row>) =>

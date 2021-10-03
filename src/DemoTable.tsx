@@ -93,7 +93,6 @@ export const DemoTable = (): JSX.Element => {
             key: 'username',
             title: 'Username',
             thClassName: 'username-column',
-            renderCell: ([username]) => <td>{username}</td>,
           },
           {
             key: 'fullName',
