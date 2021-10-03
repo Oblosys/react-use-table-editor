@@ -20,6 +20,10 @@ const defaultCellRenderer = <Row, ColumnKey extends keyof Row>([cellValue]: Stat
   <td>{'' + cellValue}</td>
 )
 
+type HeaderCellRenderer = (title?: string) => ReactElement
+
+const defaultHeaderCellRenderer: HeaderCellRenderer = (title) => <th>{title}</th>
+
 type RowRenderer = (renderedCells: ReactElement[], isDirty: boolean) => ReactElement
 
 const defaultRowRenderer: RowRenderer = (renderedCells) => <tr>{renderedCells}</tr>
@@ -37,7 +41,7 @@ const defaultTableRenderer: TableRenderer = (renderedHeaderCells, renderedRows) 
 type EditableColumn<Row, ColumnKey extends keyof Row> = {
   key: ColumnKey
   title: string
-  thClassName?: string
+  renderHeaderCell?: HeaderCellRenderer
   renderCell?: CellRenderer<Row, ColumnKey>
 }
 
@@ -46,7 +50,8 @@ const isEditableColumn = <Row,>(column: Column<Row>): column is EditableColumn<R
 type MetaColumnConfig<Row> = {
   // A column that's not for a editing a specific field, but for actions on the row, like delete, undo, etc.
   title?: string
-  thClassName?: string
+  // renderHeaderCell gets the title as a prop, which may seem a bit odd. It can also be omitted and specified directly.
+  renderHeaderCell?: HeaderCellRenderer
   // isDirty is about the row, not the cell
   renderMetaCell: (row: Editable<Row>, isDirty: boolean) => ReactElement
 }
@@ -114,6 +119,18 @@ const EditableRow = <Row,>({
   return renderRow(cells, editableRow.isDirty)
 }
 
+interface HeaderCellProps {
+  title?: string
+  renderHeaderCell?: HeaderCellRenderer
+}
+
+// Dummy component to easily pass the React key.
+const HeaderCell = ({ title, renderHeaderCell }: HeaderCellProps) => {
+  const headerCellRenderer = renderHeaderCell ?? defaultHeaderCellRenderer
+
+  return headerCellRenderer(title)
+}
+
 type EditableTableProps<Row, RowIdKey extends keyof Row> = {
   className?: string
   rowIdKey: RowIdKey
@@ -134,9 +151,8 @@ export const EditableTable = <Row, RowIdKey extends keyof Row>({
   columns,
 }: EditableTableProps<Row, RowIdKey>): ReactElement => {
   const renderedHeaderCells = columns.map((column, index) => (
-    <th key={`${column.title}__${index}`} className={column.thClassName}>
-      {column.title ?? ''}
-    </th>
+    // Index keys are fine since columns are assumed to be constant.
+    <HeaderCell key={index} title={column.title} renderHeaderCell={column.renderHeaderCell} />
   ))
   const renderedRows = editableRows.map((row) => {
     const key = '' + row.current[rowIdKey]

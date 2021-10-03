@@ -100,7 +100,7 @@ export const DemoTable = (): JSX.Element => {
           {
             key: 'username',
             title: 'Username',
-            thClassName: 'username-column',
+            renderHeaderCell: (title) => <th className="username-column">{title}</th>,
           },
           {
             key: 'fullName',
@@ -119,7 +119,7 @@ export const DemoTable = (): JSX.Element => {
           {
             key: 'credits',
             title: 'Credits',
-            thClassName: 'credits-column',
+            renderHeaderCell: (title) => <th className="credits-column">{title}</th>,
             renderCell: (state, isDirty) => (
               <td>
                 <IntegerInput stateRef={state} isDirty={isDirty} />
@@ -128,7 +128,7 @@ export const DemoTable = (): JSX.Element => {
           },
           {
             title: 'Undo',
-            thClassName: 'undo-column',
+            renderHeaderCell: (title) => <th className="undo-column">{title}</th>,
             renderMetaCell: (editableRow, isDirty) => (
               <td>
                 {isDirty ? <input type="button" value="undo" onClick={() => setRows([editableRow.pristine])} /> : null}
