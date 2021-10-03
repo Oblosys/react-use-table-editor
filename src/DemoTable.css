@@ -48,9 +48,17 @@ td.delete-cell {
   text-align: center;
 }
 
-.demo-table input.is-dirty {
+.demo-table > tbody > tr.is-dirty {
+  background-color: #eff2ff;
+}
+
+.demo-table > tbody > tr > td.is-dirty {
   background-color: #dce4ff;
 }
+
+/* .demo-table input.is-dirty {
+  background-color: #dce4ff;
+} */
 
 input.integer-input {
   width: 50px;

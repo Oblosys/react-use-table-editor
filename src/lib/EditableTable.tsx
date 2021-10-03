@@ -10,12 +10,20 @@ const mkEditable = <Row,>(row: Row): Editable<Row> => ({
   isDirty: false,
 })
 
+type CellRenderer<Row, ColumnKey extends keyof Row> = (
+  cellState: StateRef<Row[ColumnKey]>,
+  isDirty: boolean,
+) => JSX.Element
+
+type RowRenderer = (cells: JSX.Element[], isDirty: boolean) => JSX.Element
+
+const defaultRowRenderer: RowRenderer = (cells) => <tr>{cells}</tr>
+
 type EditableColumn<Row, ColumnKey extends keyof Row> = {
   key: ColumnKey
   title: string
   thClassName?: string
-  tdClassName?: string
-  renderCell: (cellState: StateRef<Row[ColumnKey]>, isDirty: boolean) => React.ReactNode
+  renderCell: CellRenderer<Row, ColumnKey>
 }
 
 const isEditableColumn = <Row,>(column: Column<Row>): column is EditableColumn<Row, keyof Row> => 'renderCell' in column
@@ -24,9 +32,8 @@ type MetaColumnConfig<Row> = {
   // A column that's not for a editing a specific field, but for actions on the row, like delete, undo, etc.
   title?: string
   thClassName?: string
-  tdClassName?: string
   // isDirty is about the row, not the cell
-  renderMetaCell: (row: Editable<Row>, isDirty: boolean) => React.ReactNode
+  renderMetaCell: (row: Editable<Row>, isDirty: boolean) => JSX.Element
 }
 
 type Column<Row> = EditableColumn<Row, keyof Row> | MetaColumnConfig<Row>
@@ -67,41 +74,46 @@ type EditableCellProps<Row> = {
   updateRowCell: UpdateRowCell<Row, keyof Row>
 }
 
-const EditableCell = <Row,>({ column, editableRow, updateRowCell }: EditableCellProps<Row>): JSX.Element => (
-  <td className={column.tdClassName}>
-    {isEditableColumn(column)
-      ? renderEditableCell(column, updateRowCell, editableRow)
-      : renderMetaCell(column, editableRow)}
-  </td>
-)
+const EditableCell = <Row,>({ column, editableRow, updateRowCell }: EditableCellProps<Row>): JSX.Element =>
+  isEditableColumn(column)
+    ? renderEditableCell(column, updateRowCell, editableRow)
+    : renderMetaCell(column, editableRow)
 
 type EditableRowProps<Row> = {
   columns: Columns<Row>
   editableRow: Editable<Row>
   updateRowCell: UpdateRowCell<Row, keyof Row>
+  renderRow?: RowRenderer
 }
 
-const EditableRow = <Row,>({ columns, editableRow, updateRowCell }: EditableRowProps<Row>) => {
+const EditableRow = <Row,>({
+  columns,
+  editableRow,
+  updateRowCell,
+  renderRow = defaultRowRenderer,
+}: EditableRowProps<Row>) => {
   const cells = columns.map((column, index) => (
     <EditableCell key={`cell__${index}`} {...{ editableRow, updateRowCell, column }} />
   ))
-  return <tr>{cells}</tr>
+  return renderRow(cells, editableRow.isDirty)
 }
 
 type EditableTableProps<Row, RowIdKey extends keyof Row> = {
   className?: string
   rowIdKey: RowIdKey
-  columns: ColumnsProp<Row>
   editableRows: Editable<Row>[]
   updateRowCellByKey: (rowKey: Row[RowIdKey]) => UpdateRowCell<Row, keyof Row>
+  renderRow?: RowRenderer
+  columns: ColumnsProp<Row>
 }
 
 export const EditableTable = <Row, RowIdKey extends keyof Row>({
   className,
   rowIdKey,
-  columns,
   editableRows,
   updateRowCellByKey,
+  renderRow,
+  columns,
 }: EditableTableProps<Row, RowIdKey>): JSX.Element => (
   <table className={className}>
     <thead>
@@ -121,6 +133,7 @@ export const EditableTable = <Row, RowIdKey extends keyof Row>({
             columns={columns}
             key={key}
             editableRow={row}
+            renderRow={renderRow}
             updateRowCell={updateRowCellByKey(row.current[rowIdKey])}
           />
         )

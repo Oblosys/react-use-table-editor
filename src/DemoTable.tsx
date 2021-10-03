@@ -68,50 +68,65 @@ export const DemoTable = (): JSX.Element => {
         />
         Row count: {editableRows.length}, Modified: {dirtyRows.length}
       </div>
+
       <EditableTable<User, 'username'> // Type params can be inferred, but specifying them give more readable errors.
         className="demo-table"
         rowIdKey="username"
         editableRows={editableRows}
         updateRowCellByKey={updateRowCellByRowId}
+        renderRow={(cells, isDirty) => <tr className={isDirty ? 'is-dirty' : undefined}>{cells}</tr>}
         columns={[
           {
             title: 'Delete',
-            tdClassName: 'delete-cell',
             renderMetaCell: (editableRow) => (
-              <div role="img" aria-label="Delete row" onClick={() => handleDeleteRow(editableRow)}>
+              <td
+                className="delete-cell"
+                role="img"
+                aria-label="Delete row"
+                onClick={() => handleDeleteRow(editableRow)}
+              >
                 ❌
-              </div>
+              </td>
             ),
           },
           {
             key: 'username',
             title: 'Username',
             thClassName: 'username-column',
-            renderCell: ([username]) => <span>{username}</span>,
+            renderCell: ([username]) => <td>{username}</td>,
           },
           {
             key: 'fullName',
             title: 'Full name',
             renderCell: ([fullname, setFullName], isDirty) => (
-              <input
-                className={isDirty ? 'is-dirty' : undefined}
-                type="text"
-                value={fullname}
-                onChange={(e) => setFullName(e.target.value)}
-              />
+              <td>
+                <input
+                  className={isDirty ? 'is-dirty' : undefined}
+                  type="text"
+                  value={fullname}
+                  onChange={(e) => setFullName(e.target.value)}
+                />
+              </td>
             ),
           },
           {
             key: 'credits',
             title: 'Credits',
             thClassName: 'credits-column',
-            renderCell: (state, isDirty) => <IntegerInput stateRef={state} isDirty={isDirty} />,
+            renderCell: (state, isDirty) => (
+              <td>
+                <IntegerInput stateRef={state} isDirty={isDirty} />
+              </td>
+            ),
           },
           {
             title: 'Undo',
             thClassName: 'undo-column',
-            renderMetaCell: (editableRow, isDirty) =>
-              isDirty ? <input type="button" value="undo" onClick={() => setRows([editableRow.pristine])} /> : <span />,
+            renderMetaCell: (editableRow, isDirty) => (
+              <td>
+                {isDirty ? <input type="button" value="undo" onClick={() => setRows([editableRow.pristine])} /> : null}
+              </td>
+            ),
           },
         ]}
       />
