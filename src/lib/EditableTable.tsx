@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { ReactElement, useState } from 'react'
 
 export type StateRef<S> = [S, React.Dispatch<React.SetStateAction<S>>]
 
@@ -13,17 +13,27 @@ const mkEditable = <Row,>(row: Row): Editable<Row> => ({
 type CellRenderer<Row, ColumnKey extends keyof Row> = (
   cellState: StateRef<Row[ColumnKey]>,
   isDirty: boolean,
-) => JSX.Element
+) => ReactElement
 
 // defaultCellRenderer has type `CellRenderer<Row, ColumnKey extends keyof Row>` but TypeScript cannot express this.
-const defaultCellRenderer = <Row, ColumnKey extends keyof Row>([cellValue]: StateRef<Row[ColumnKey]>): JSX.Element => (
+const defaultCellRenderer = <Row, ColumnKey extends keyof Row>([cellValue]: StateRef<Row[ColumnKey]>): ReactElement => (
   <td>{'' + cellValue}</td>
 )
 
-type RowRenderer = (renderedCells: JSX.Element[], isDirty: boolean) => JSX.Element
+type RowRenderer = (renderedCells: ReactElement[], isDirty: boolean) => ReactElement
 
 const defaultRowRenderer: RowRenderer = (renderedCells) => <tr>{renderedCells}</tr>
 
+type TableRenderer = (renderedHeaderCells: ReactElement[], renderedRows: ReactElement[]) => ReactElement
+
+const defaultTableRenderer: TableRenderer = (renderedHeaderCells, renderedRows) => (
+  <table>
+    <thead>
+      <tr>{renderedHeaderCells}</tr>
+    </thead>
+    <tbody>{renderedRows}</tbody>
+  </table>
+)
 type EditableColumn<Row, ColumnKey extends keyof Row> = {
   key: ColumnKey
   title: string
@@ -38,7 +48,7 @@ type MetaColumnConfig<Row> = {
   title?: string
   thClassName?: string
   // isDirty is about the row, not the cell
-  renderMetaCell: (row: Editable<Row>, isDirty: boolean) => JSX.Element
+  renderMetaCell: (row: Editable<Row>, isDirty: boolean) => ReactElement
 }
 
 type Column<Row> = EditableColumn<Row, keyof Row> | MetaColumnConfig<Row>
@@ -80,7 +90,7 @@ type EditableCellProps<Row> = {
   updateRowCell: UpdateRowCell<Row, keyof Row>
 }
 
-const EditableCell = <Row,>({ column, editableRow, updateRowCell }: EditableCellProps<Row>): JSX.Element =>
+const EditableCell = <Row,>({ column, editableRow, updateRowCell }: EditableCellProps<Row>): ReactElement =>
   isEditableColumn(column)
     ? renderEditableCell(column, updateRowCell, editableRow)
     : renderMetaCell(column, editableRow)
@@ -110,6 +120,7 @@ type EditableTableProps<Row, RowIdKey extends keyof Row> = {
   editableRows: Editable<Row>[]
   updateRowCellByKey: (rowKey: Row[RowIdKey]) => UpdateRowCell<Row, keyof Row>
   renderRow?: RowRenderer
+  renderTable?: TableRenderer
   columns: ColumnsProp<Row>
 }
 
@@ -119,34 +130,31 @@ export const EditableTable = <Row, RowIdKey extends keyof Row>({
   editableRows,
   updateRowCellByKey,
   renderRow,
+  renderTable,
   columns,
-}: EditableTableProps<Row, RowIdKey>): JSX.Element => (
-  <table className={className}>
-    <thead>
-      <tr>
-        {columns.map((column, index) => (
-          <th key={`${column.title}__${index}`} className={column.thClassName}>
-            {column.title ?? ''}
-          </th>
-        ))}
-      </tr>
-    </thead>
-    <tbody>
-      {editableRows.map((row) => {
-        const key = '' + row.current[rowIdKey]
-        return (
-          <EditableRow<Row>
-            columns={columns}
-            key={key}
-            editableRow={row}
-            renderRow={renderRow}
-            updateRowCell={updateRowCellByKey(row.current[rowIdKey])}
-          />
-        )
-      })}
-    </tbody>
-  </table>
-)
+}: EditableTableProps<Row, RowIdKey>): ReactElement => {
+  const renderedHeaderCells = columns.map((column, index) => (
+    <th key={`${column.title}__${index}`} className={column.thClassName}>
+      {column.title ?? ''}
+    </th>
+  ))
+  const renderedRows = editableRows.map((row) => {
+    const key = '' + row.current[rowIdKey]
+    return (
+      <EditableRow<Row>
+        columns={columns}
+        key={key}
+        editableRow={row}
+        renderRow={renderRow}
+        updateRowCell={updateRowCellByKey(row.current[rowIdKey])}
+      />
+    )
+  })
+  const tableRenderer = renderTable ?? defaultTableRenderer
+  const renderedTable = tableRenderer(renderedHeaderCells, renderedRows)
+
+  return className === undefined ? renderedTable : React.cloneElement(renderedTable, { className: className })
+}
 
 const applyCellUpdate = <S,>(prevState: S, update: React.SetStateAction<S>) =>
   typeof update === 'function' ? (update as (prevState: S) => S)(prevState) : update
