@@ -44,12 +44,20 @@ th.undo-column {
   width: 45px;
 }
 
-td.delete-cell {
+td.remove-cell {
   text-align: center;
 }
 
 .demo-table > tbody > tr.is-dirty {
   background-color: #eff2ff;
+}
+
+.demo-table > tbody > tr.is-new {
+  background-color: #fff23e;
+}
+
+.demo-table > tbody > tr.is-removed {
+  background-color: #fa1a0a;
 }
 
 .demo-table > tbody > tr > td.is-dirty {

@@ -1,11 +1,12 @@
 import faker from 'faker'
 
 import { FullNameInput, IntegerInput } from './DemoInputs'
-import { Editable, EditableTable, useEditableRows } from './lib/EditableTable'
+import { Editable, EditableTable, getEditStatusClassName, useEditableTable } from './lib/EditableTable'
 
 import './DemoTable.css'
 
-const sum = (ns: number[]) => ns.reduce((s, n) => s + n, 0)
+const sumBy = <K extends keyof T, T extends Record<K, number>>(key: K, objs: T[]) =>
+  objs.reduce((s, obj) => s + obj[key], 0)
 
 interface User {
   username: string
@@ -13,24 +14,23 @@ interface User {
   credits: number
 }
 
+const initialUsers: User[] = [
+  { username: 'dan', fullName: ['Toucan', 'Dan'], credits: 10 },
+  { username: 'dave', fullName: ['Chiquita', 'Dave'], credits: 80 },
+  { username: 'truck', fullName: ['Truck', 'Shepard'], credits: 30 },
+  { username: 'vader', fullName: ['Dark', 'Vader'], credits: 75 },
+]
+
+const showUserNames = (users: User[]) => `[${users.map(({ username }) => `'${username}'`).join(', ')}]`
+
 export const DemoTable = (): JSX.Element => {
-  const {
-    state: [editableRows, setEditableRows],
-    setRows,
-    mkUpdateRowCellByRowId,
-    dirtyRows,
-  } = useEditableRows<User, 'username'>('username', [
-    { username: 'dan', fullName: ['Toucan', 'Dan'], credits: 10 },
-    { username: 'dave', fullName: ['Chiquita', 'Dave'], credits: 80 },
-    { username: 'truck', fullName: ['Truck', 'Shepard'], credits: 30 },
-    { username: 'vader', fullName: ['Dark', 'Vader'], credits: 75 },
-  ])
+  const { rows, edit, prim } = useEditableTable<User, 'username'>('username', initialUsers)
 
   const handleAddRow = () => {
     const firstName = faker.name.firstName()
     const lastName = faker.name.lastName()
 
-    setRows([
+    edit.insertRows([
       {
         username: faker.internet.userName(firstName, lastName),
         fullName: [firstName, lastName],
@@ -40,19 +40,19 @@ export const DemoTable = (): JSX.Element => {
   }
 
   // A real-world handleSave can post the changes to a server and set the rows on success.
-  const handleSave = () => setRows(dirtyRows.map((row) => row.current))
+  const handleSave = (rows: Editable<User>[]) => () => edit.commitRows(rows)
 
-  const handleDeleteRow = (userToDelete: Editable<User>) =>
-    setEditableRows((users) => users.filter(({ current: { username } }) => username !== userToDelete.current.username))
-
-  const serverSideCredits = sum(editableRows.map((x) => x.pristine.credits))
+  const serverSideCredits = sumBy('credits', rows.pristine)
+  const currentCredits = sumBy('credits', rows.current)
 
   // Difference with server-side total due to edited rows.
-  const deltaCredits = sum(dirtyRows.map((x) => x.current.credits - x.pristine.credits))
+  const deltaCredits = currentCredits - serverSideCredits
 
   return (
     <div>
-      <h3>Demo table</h3>
+      <h3>
+        Demo table <input type="button" value="Reset table" onClick={() => edit.initializeTable(initialUsers)} />
+      </h3>
       <div>
         Total credits: {serverSideCredits + deltaCredits}{' '}
         {deltaCredits !== 0 ? ' = ' + serverSideCredits + (deltaCredits > 0 ? '+' : '') + deltaCredits : ''}
@@ -63,18 +63,20 @@ export const DemoTable = (): JSX.Element => {
           className="save-button"
           type="button"
           value="Save"
-          disabled={dirtyRows.length === 0}
-          onClick={handleSave}
+          disabled={rows.dirty.length === 0}
+          onClick={handleSave(rows.dirty)}
         />
-        Row count: {editableRows.length}, Modified: {dirtyRows.length}
+        Row count: {rows.current.length}, Modified: {rows.dirty.length}
       </div>
 
       <EditableTable<User, 'username'> // Type params can be inferred, but specifying them give more readable errors.
         className="demo-table"
         rowIdKey="username"
-        editableRows={editableRows}
-        mkUpdateRowCellByRowId={mkUpdateRowCellByRowId}
-        renderRow={(renderedCells, isDirty) => <tr className={isDirty ? 'is-dirty' : undefined}>{renderedCells}</tr>}
+        editableRows={prim.editableRows}
+        mkUpdateRowCellByRowId={prim.mkUpdateRowCellByRowId}
+        renderRow={(renderedCells, editStatus) => (
+          <tr className={getEditStatusClassName(editStatus)}>{renderedCells}</tr>
+        )}
         renderTable={(renderedHeaderRow, renderedRows) => (
           <table>
             <thead>
@@ -85,15 +87,14 @@ export const DemoTable = (): JSX.Element => {
         )}
         columns={[
           {
-            title: 'Delete',
-            renderMetaCell: (editableRow) => (
-              <td
-                className="delete-cell"
-                role="img"
-                aria-label="Delete row"
-                onClick={() => handleDeleteRow(editableRow)}
-              >
-                ❌
+            title: 'Remove',
+            renderMetaCell: (editableRow, { isRemoved }) => (
+              <td className="remove-cell" onClick={() => edit.removeRows([editableRow])}>
+                {!isRemoved ? (
+                  <span role="img" aria-label="Remove row">
+                    ❌
+                  </span>
+                ) : null}
               </td>
             ),
           },
@@ -130,9 +131,22 @@ export const DemoTable = (): JSX.Element => {
           {
             title: 'Undo',
             renderHeaderCell: (title) => <th className="undo-column">{title}</th>,
-            renderMetaCell: (editableRow, isDirty) => (
+            renderMetaCell: (editableRow, editStatus) => (
               <td>
-                {isDirty ? <input type="button" value="undo" onClick={() => setRows([editableRow.pristine])} /> : null}
+                {editStatus.isDirty || editStatus.isNew || editStatus.isRemoved ? ( // TODO: Just want one condition here.
+                  <input type="button" value="undo" onClick={() => edit.revertRows([editableRow])} />
+                ) : null}
+              </td>
+            ),
+          },
+          {
+            title: 'Save',
+            renderHeaderCell: (title) => <th className="undo-column">{title}</th>,
+            renderMetaCell: (editableRow, editStatus) => (
+              <td>
+                {editStatus.isDirty || editStatus.isNew || editStatus.isRemoved ? (
+                  <input type="button" value="save" onClick={handleSave([editableRow])} />
+                ) : null}
               </td>
             ),
           },
@@ -141,19 +155,44 @@ export const DemoTable = (): JSX.Element => {
 
       <h3>Debug</h3>
       <table className="debug-table">
+        <tbody>
+          <tr>
+            <td>current</td>
+            <td>{showUserNames(rows.current)}</td>
+          </tr>
+          <tr>
+            <td>pristine</td>
+            <td>{showUserNames(rows.pristine)}</td>
+          </tr>
+          <tr>
+            <td>dirty</td>
+            <td>{showUserNames(rows.dirty.map(({ current }) => current))}</td>
+          </tr>
+          <tr>
+            <td>removed</td>
+            <td>{showUserNames(rows.removed.map(({ current }) => current))}</td>
+          </tr>
+          <tr>
+            <td>new</td>
+            <td>{showUserNames(rows.new.map(({ current }) => current))}</td>
+          </tr>
+        </tbody>
+      </table>
+      <br />
+      <table className="debug-table">
         <thead>
           <tr>
             <th>row.current</th>
             <th>row.pristine</th>
-            <th>row.isdirty</th>
+            <th>row.editStatus</th>
           </tr>
         </thead>
         <tbody>
-          {editableRows.map(({ isDirty, current, pristine }) => (
+          {prim.editableRows.map(({ editStatus, current, pristine }) => (
             <tr key={current.username}>
               <td>{JSON.stringify(current)}</td>
               <td>{JSON.stringify(pristine)}</td>
-              <td>{JSON.stringify(isDirty)}</td>
+              <td>{JSON.stringify(editStatus)}</td>
             </tr>
           ))}
         </tbody>
