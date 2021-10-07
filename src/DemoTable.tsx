@@ -1,7 +1,15 @@
 import faker from 'faker'
 
 import { FullNameInput, IntegerInput } from './DemoInputs'
-import { Editable, EditableTable, getEditStatusClassName, useEditableTable } from './lib/EditableTable'
+import {
+  Editable,
+  EditableTable,
+  getEditStatusClassName,
+  getIsDirty,
+  getPristineRow,
+  stripEditable,
+  useEditableTable,
+} from './lib/EditableTable'
 
 import './DemoTable.css'
 
@@ -173,15 +181,15 @@ export const DemoTable = (): JSX.Element => {
           </tr>
           <tr>
             <td>dirty</td>
-            <td>{showUserNames(rows.dirty.map(({ current }) => current))}</td>
+            <td>{showUserNames(rows.dirty)}</td>
           </tr>
           <tr>
             <td>removed</td>
-            <td>{showUserNames(rows.removed.map(({ current }) => current))}</td>
+            <td>{showUserNames(rows.removed)}</td>
           </tr>
           <tr>
             <td>new</td>
-            <td>{showUserNames(rows.new.map(({ current }) => current))}</td>
+            <td>{showUserNames(rows.new)}</td>
           </tr>
         </tbody>
       </table>
@@ -189,17 +197,17 @@ export const DemoTable = (): JSX.Element => {
       <table className="debug-table">
         <thead>
           <tr>
-            <th>row.current</th>
-            <th>row.pristine</th>
-            <th>row.editStatus</th>
+            <th>current</th>
+            <th>pristine</th>
+            <th>isdirty</th>
           </tr>
         </thead>
         <tbody>
-          {prim.editableRows.map(({ editStatus, current, pristine }) => (
-            <tr key={current.username}>
-              <td>{JSON.stringify(current)}</td>
-              <td>{JSON.stringify(pristine)}</td>
-              <td>{JSON.stringify(editStatus)}</td>
+          {prim.editableRows.map((row) => (
+            <tr key={row.username}>
+              <td>{JSON.stringify(stripEditable(row))}</td>
+              <td>{JSON.stringify(getPristineRow(row))}</td>
+              <td>{JSON.stringify(getIsDirty(row))}</td>
             </tr>
           ))}
         </tbody>
