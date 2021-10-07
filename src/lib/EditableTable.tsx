@@ -23,7 +23,7 @@ export type Editable<Row> = Row & {
   [editableKey]: EditStatus<Row>
 }
 
-const mkEditable = <Row,>(row: Row): Editable<Row> => ({
+export const mkEditable = <Row,>(row: Row): Editable<Row> => ({
   ...row,
   [editableKey]: { pristine: row, isDirty: false, isNew: false, isRemoved: false },
 })
@@ -36,6 +36,8 @@ export const stripEditable = <Row,>({ [editableKey]: edit, ...row }: Editable<Ro
 export const getPristineRow = <Row,>(row: Editable<Row>): Row => row[editableKey].pristine
 
 export const getIsDirty = <Row,>(row: Editable<Row>): boolean => row[editableKey].isDirty
+export const getIsNew = <Row,>(row: Editable<Row>): boolean => row[editableKey].isNew
+export const getIsRemoved = <Row,>(row: Editable<Row>): boolean => row[editableKey].isRemoved
 
 const getRowIdSet = <Row, RowIdKey extends keyof Row>(rowIdKey: RowIdKey, rows: Row[]): Set<Row[RowIdKey]> =>
   new Set(rows.map((row) => row[rowIdKey]))
