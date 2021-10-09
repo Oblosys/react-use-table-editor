@@ -1,3 +1,7 @@
+input.reset-button {
+  vertical-align: text-bottom;
+}
+
 .table-stats {
   margin-top: 15px;
   margin-bottom: 5px;
@@ -53,7 +57,7 @@ td.remove-cell {
 }
 
 .demo-table > tbody > tr.is-new {
-  background-color: #fff23e;
+  background-color: #ffffc0;
 }
 
 .demo-table > tbody > tr.is-removed > td.value-cell {

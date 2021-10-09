@@ -51,7 +51,13 @@ export const DemoTable = (): JSX.Element => {
   return (
     <div>
       <h3>
-        Demo table <input type="button" value="Reset table" onClick={() => edit.initializeTable(initialUsers)} />
+        Demo table{' '}
+        <input
+          type="button"
+          className="reset-button"
+          value="Reset table"
+          onClick={() => edit.initializeTable(initialUsers)}
+        />
       </h3>
       <div>
         Total credits: {serverSideCredits + deltaCredits}{' '}
