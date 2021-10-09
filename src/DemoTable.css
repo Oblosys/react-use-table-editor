@@ -56,8 +56,9 @@ td.remove-cell {
   background-color: #fff23e;
 }
 
-.demo-table > tbody > tr.is-removed {
-  background-color: #fa1a0a;
+.demo-table > tbody > tr.is-removed > td.value-cell {
+  opacity: 0.5;
+  text-decoration: line-through;
 }
 
 .demo-table > tbody > tr > td.is-dirty {

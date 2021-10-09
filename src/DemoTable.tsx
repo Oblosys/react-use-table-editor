@@ -102,18 +102,19 @@ export const DemoTable = (): JSX.Element => {
             key: 'username',
             title: 'Username',
             renderHeaderCell: (title) => <th className="username-column">{title}</th>,
+            renderCell: ([username]) => <td className="value-cell">{username}</td>,
           },
           {
             key: 'fullName',
             title: 'Full name',
             eq: ([pristineFirst, pristineLast], [currentFirst, currentLast]) =>
               pristineFirst === currentFirst && pristineLast === currentLast,
-            renderCell: (fullNameState, _isDirty, [pristineFirst, pristineLast]) => {
+            renderCell: (fullNameState, _isDirty, [pristineFirst, pristineLast], rowEditStatus) => {
               const [[firstName, lastName]] = fullNameState
               const isDirty: [boolean, boolean] = [firstName !== pristineFirst, lastName !== pristineLast]
               return (
-                <td>
-                  <FullNameInput stateRef={fullNameState} isDirty={isDirty} />
+                <td className="value-cell">
+                  <FullNameInput stateRef={fullNameState} isDirty={isDirty} isDisabled={rowEditStatus.isRemoved} />
                 </td>
               )
             },
@@ -122,9 +123,9 @@ export const DemoTable = (): JSX.Element => {
             key: 'credits',
             title: 'Credits',
             renderHeaderCell: (title) => <th className="credits-column">{title}</th>,
-            renderCell: (state, isDirty) => (
-              <td>
-                <IntegerInput stateRef={state} isDirty={isDirty} />
+            renderCell: (state, isDirty, _pristineValue, rowEditStatus) => (
+              <td className="value-cell">
+                <IntegerInput stateRef={state} isDirty={isDirty} isDisabled={rowEditStatus.isRemoved} />
               </td>
             ),
           },
