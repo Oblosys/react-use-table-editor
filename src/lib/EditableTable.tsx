@@ -35,6 +35,7 @@ type CellRenderer<Row, ColumnKey extends keyof Row> = (
   cellState: StateRef<Row[ColumnKey]>,
   isDirty: boolean,
   pristineValue: Row[ColumnKey],
+  rowEditStatus: EditStatus<Row>,
 ) => ReactElement
 
 // defaultCellRenderer has type `CellRenderer<Row, ColumnKey extends keyof Row>` but TypeScript cannot express this.
@@ -112,7 +113,7 @@ const renderEditableCell = <Row, ColumnKey extends keyof Row>(
   const isDirty = column.eq !== undefined ? !column.eq(cellValue, pristineValue) : cellValue !== pristineValue
 
   const cellRenderer = column.renderCell ?? defaultCellRenderer
-  return cellRenderer(cellStateRef, isDirty, pristineValue)
+  return cellRenderer(cellStateRef, isDirty, pristineValue, editableRow[editableKey])
 }
 
 const renderMetaCell = <Row,>(column: MetaColumnConfig<Row>, editableRow: Editable<Row>) =>
