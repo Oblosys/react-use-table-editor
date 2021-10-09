@@ -109,7 +109,7 @@ export const DemoTable = (): JSX.Element => {
             title: 'Full name',
             eq: ([pristineFirst, pristineLast], [currentFirst, currentLast]) =>
               pristineFirst === currentFirst && pristineLast === currentLast,
-            renderCell: (fullNameState, _isDirty, [pristineFirst, pristineLast], rowEditStatus) => {
+            renderCell: (fullNameState, { pristine: [pristineFirst, pristineLast] }, rowEditStatus) => {
               const [[firstName, lastName]] = fullNameState
               const isDirty: [boolean, boolean] = [firstName !== pristineFirst, lastName !== pristineLast]
               return (
@@ -123,7 +123,7 @@ export const DemoTable = (): JSX.Element => {
             key: 'credits',
             title: 'Credits',
             renderHeaderCell: (title) => <th className="credits-column">{title}</th>,
-            renderCell: (state, isDirty, _pristineValue, rowEditStatus) => (
+            renderCell: (state, { isDirty }, rowEditStatus) => (
               <td className="value-cell">
                 <IntegerInput stateRef={state} isDirty={isDirty} isDisabled={rowEditStatus.isRemoved} />
               </td>
@@ -132,9 +132,9 @@ export const DemoTable = (): JSX.Element => {
           {
             title: 'Undo',
             renderHeaderCell: (title) => <th className="undo-column">{title}</th>,
-            renderMetaCell: (editableRow, editStatus) => (
+            renderMetaCell: (editableRow, rowEditStatus) => (
               <td>
-                {editStatus.isDirty || editStatus.isNew || editStatus.isRemoved ? ( // TODO: Just want one condition here.
+                {rowEditStatus.isDirty || rowEditStatus.isNew || rowEditStatus.isRemoved ? ( // TODO: Just want one condition here.
                   <input type="button" value="undo" onClick={() => edit.revertRows([editableRow])} />
                 ) : null}
               </td>
@@ -143,9 +143,9 @@ export const DemoTable = (): JSX.Element => {
           {
             title: 'Save',
             renderHeaderCell: (title) => <th className="undo-column">{title}</th>,
-            renderMetaCell: (editableRow, editStatus) => (
+            renderMetaCell: (editableRow, rowEditStatus) => (
               <td>
-                {editStatus.isDirty || editStatus.isNew || editStatus.isRemoved ? (
+                {rowEditStatus.isDirty || rowEditStatus.isNew || rowEditStatus.isRemoved ? (
                   <input type="button" value="save" onClick={handleSave([editableRow])} />
                 ) : null}
               </td>

@@ -5,6 +5,10 @@ export type StateRef<S> = [S, React.Dispatch<React.SetStateAction<S>>]
 export type EditStatus = { isDirty: boolean; isNew: boolean; isRemoved: boolean }
 // TODO: Don't want isNew and isRemoved to be both true, enum is probably better. isNew & isRemoved imply isDirty.
 
+// Cells cannot be added or removed, so we have a simpler edit status.
+// TODO: Do we need to make it more clear this is about cells to avoid confusion with rowEditStatus arguments?
+export type CellEditStatus<Cell> = { pristine: Cell; isDirty: boolean }
+
 const setEditStatus = <Row,>(editStatus: Partial<EditStatus>, editableRow: Editable<Row>): Editable<Row> => ({
   ...editableRow,
   editStatus: { ...editableRow.editStatus, ...editStatus },
@@ -31,11 +35,12 @@ const mkEditable = <Row,>(row: Row): Editable<Row> => ({
 
 const isEditableRow = <Row,>(row: Row | Editable<Row>): row is Editable<Row> => editableSymbol in row
 
+type MetaCellRenderer<Row> = (row: Editable<Row>, editStatus: EditStatus) => ReactElement
+
 type CellRenderer<Row, ColumnKey extends keyof Row> = (
   cellState: StateRef<Row[ColumnKey]>,
-  isDirty: boolean,
-  pristineValue: Row[ColumnKey],
-  rowEditStatus: EditStatus<Row>,
+  cellEditStatus: CellEditStatus<Row[ColumnKey]>,
+  rowEditStatus: EditStatus,
 ) => ReactElement
 
 // defaultCellRenderer has type `CellRenderer<Row, ColumnKey extends keyof Row>` but TypeScript cannot express this.
@@ -83,7 +88,7 @@ type MetaColumnConfig<Row> = {
   // renderHeaderCell gets the title as a prop, which may seem a bit odd. It can also be omitted and specified directly.
   renderHeaderCell?: HeaderCellRenderer
   // isDirty is about the row, not the cell
-  renderMetaCell: (row: Editable<Row>, editStatus: EditStatus) => ReactElement
+  renderMetaCell: MetaCellRenderer<Row>
 }
 
 type Column<Row> = EditableColumn<Row, keyof Row> | MetaColumnConfig<Row>
@@ -111,9 +116,10 @@ const renderEditableCell = <Row, ColumnKey extends keyof Row>(
   const cellStateRef: StateRef<Row[ColumnKey]> = [cellValue, updateCell]
   const pristineValue = editableRow.pristine[column.key]
   const isDirty = column.eq !== undefined ? !column.eq(cellValue, pristineValue) : cellValue !== pristineValue
+  const cellEditStatus = { pristine: pristineValue, isDirty }
 
   const cellRenderer = column.renderCell ?? defaultCellRenderer
-  return cellRenderer(cellStateRef, isDirty, pristineValue, editableRow[editableKey])
+  return cellRenderer(cellStateRef, cellEditStatus, editableRow.editStatus)
 }
 
 const renderMetaCell = <Row,>(column: MetaColumnConfig<Row>, editableRow: Editable<Row>) =>
