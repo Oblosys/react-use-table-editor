@@ -350,7 +350,7 @@ const mkCommitRows =
 
 // Hook
 
-type UseEditableTable<Row, RowIdKey extends keyof Row> = {
+type UseTableEditor<Row, RowIdKey extends keyof Row> = {
   rows: {
     current: Row[]
     pristine: Row[]
@@ -371,10 +371,10 @@ type UseEditableTable<Row, RowIdKey extends keyof Row> = {
   }
 }
 
-export const useEditableTable = <Row, RowIdKey extends keyof Row>(
+export const useTableEditor = <Row, RowIdKey extends keyof Row>(
   rowIdKey: RowIdKey,
   initialRows: Row[],
-): UseEditableTable<Row, RowIdKey> => {
+): UseTableEditor<Row, RowIdKey> => {
   const state = useState<Editable<Row>[]>(initialRows.map(mkEditable))
   const [editableRows, setEditableRows] = state
 

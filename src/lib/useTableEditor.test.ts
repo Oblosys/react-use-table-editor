@@ -2,7 +2,7 @@ import '@testing-library/react'
 
 import { act, renderHook } from '@testing-library/react-hooks'
 
-import { useEditableTable } from './EditableTable'
+import { useTableEditor } from './useTableEditor'
 
 interface User {
   username: string
@@ -21,7 +21,7 @@ const testUsers: User[] = [
 
 test('edit.insert', () => {
   const newRow: User = { username: 'testuser', fullName: ['Test', 'User'], credits: 42 }
-  const hook = renderHook(() => useEditableTable('username', testUsers)).result
+  const hook = renderHook(() => useTableEditor('username', testUsers)).result
   act(() => hook.current.edit.insertRows([newRow]))
   const { editableRows } = hook.current.prim
 

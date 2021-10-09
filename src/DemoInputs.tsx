@@ -1,4 +1,4 @@
-import { StateRef } from './lib/EditableTable'
+import { StateRef } from './lib/useTableEditor'
 
 const zeroForNaN = (num: number) => (isNaN(num) ? 0 : num)
 

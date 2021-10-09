@@ -8,8 +8,8 @@ import {
   getIsDirty,
   getPristineRow,
   stripEditable,
-  useEditableTable,
-} from './lib/EditableTable'
+  useTableEditor,
+} from './lib/useTableEditor'
 
 import './DemoTable.css'
 
@@ -32,7 +32,7 @@ const initialUsers: User[] = [
 const showUserNames = (users: User[]) => `[${users.map(({ username }) => `'${username}'`).join(', ')}]`
 
 export const DemoTable = (): JSX.Element => {
-  const { rows, edit, prim } = useEditableTable<User, 'username'>('username', initialUsers)
+  const { rows, edit, prim } = useTableEditor<User, 'username'>('username', initialUsers)
 
   const handleAddRow = () => {
     const firstName = faker.name.firstName()
