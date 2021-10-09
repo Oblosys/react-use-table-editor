@@ -92,7 +92,7 @@ export const DemoTable = (): JSX.Element => {
           <tr className={getEditStatusClassName(editStatus)}>{renderedCells}</tr>
         )}
         renderTable={(renderedHeaderRow, renderedRows) => (
-          <table>
+          <table data-testid="demo-table">
             <thead>
               <tr>{renderedHeaderRow}</tr>
             </thead>
