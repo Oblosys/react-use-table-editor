@@ -1,6 +1,6 @@
 {
   "short_name": "Demo",
-  "name": "React-ts-editable-table demo",
+  "name": "react-use-table-editor demo",
   "icons": [
     {
       "src": "favicon.ico",
