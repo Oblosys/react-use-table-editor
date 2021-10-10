@@ -158,11 +158,10 @@ const applyRowUpdate = <Row, ColumnKey extends keyof Row>(
   columnKey: ColumnKey,
   update: React.SetStateAction<Row[ColumnKey]>,
 ): Editable<Row> => {
-  // const { current: previousRow, [editableKey]: previousEditStatus } = previousEditableRow
   const previousRow = stripEditable(previousEditableRow)
   const pristine = previousEditableRow[editableKey].pristine
-  const previousCellValue = previousRow[columnKey]
-  const updatedCellValue = applyCellUpdate(previousCellValue, update)
+
+  const updatedCellValue = applyCellUpdate(previousRow[columnKey], update)
   const updatedRow = { ...previousRow, [columnKey]: updatedCellValue }
 
   const rowKeys = Object.keys(updatedRow) as (keyof Row)[]
@@ -202,7 +201,7 @@ const EditableCell = <Row,>({ column, editableRow, updateRowCell }: EditableCell
     : renderMetaCell(column, editableRow)
 
 type EditableRowProps<Row> = {
-  columns: Columns<Row>
+  columns: Columns<Row> // Columns<Row> instead of ColumnsProp<Row> as it is easier to use and EditableRow is internal.
   editableRow: Editable<Row>
   updateRowCell: UpdateRowCell<Row>
   renderRow?: RowRenderer<Row>
