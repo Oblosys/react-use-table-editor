@@ -21,9 +21,7 @@ const editableKey = Symbol('editable')
 
 // TODO: Explain: No constraints to object or Record<PropertyKey, unknown>. Doesn't add much, is more verbose, and
 // Record causes issues with interfaces.
-export type Editable<Row> = Row & {
-  [editableKey]: EditStatus<Row>
-}
+export type Editable<Row> = Row & { [editableKey]: EditStatus<Row> }
 
 const mkEditable = <Row,>(row: Row): Editable<Row> => ({
   ...row,
@@ -59,7 +57,7 @@ type HeaderCellRenderer = (title?: string) => ReactElement
 
 const defaultHeaderCellRenderer: HeaderCellRenderer = (title) => <th>{title}</th>
 
-type RowRenderer<Row> = (renderedCells: ReactElement[], editStatus: EditStatus<Row>, pristineRow: Row) => ReactElement
+type RowRenderer<Row> = (renderedCells: ReactElement[], editStatus: EditStatus<Row>) => ReactElement
 
 const defaultRowRenderer: RowRenderer<unknown> = (renderedCells: ReactElement[]): ReactElement => (
   <tr>{renderedCells}</tr>
@@ -88,24 +86,27 @@ const isEditableColumn = <Row,>(column: Column<Row>): column is EditableColumn<R
 const filterEditablecolumns = <Row,>(columns: Column<Row>[]): EditableColumn<Row, keyof Row>[] =>
   columns.filter(isEditableColumn)
 
-type MetaColumnConfig<Row> = {
-  // A column that's not for a editing a specific field, but for actions on the row, like remove, undo, etc.
+type MetaColumn<Row> = {
+  // A column that's not for editing a specific field, but for actions on the entire row, like remove, undo, etc.
   title?: string
   // renderHeaderCell gets the title as a prop, which may seem a bit odd. It can also be omitted and specified directly.
   renderHeaderCell?: HeaderCellRenderer
-  // isDirty is about the row, not the cell
   renderMetaCell: MetaCellRenderer<Row>
 }
 
-type Column<Row> = EditableColumn<Row, keyof Row> | MetaColumnConfig<Row>
+type Column<Row> = EditableColumn<Row, keyof Row> | MetaColumn<Row>
 
-// Force distribution over row keys.
-type EditableColumnConfigDist<Row, ColumnKey extends keyof Row> = ColumnKey extends keyof Row
+// Force distribution over row keys with a conditional type.
+type EditableColumnDist<Row, ColumnKey extends keyof Row> = ColumnKey extends keyof Row
   ? EditableColumn<Row, ColumnKey>
   : never
 
-// Distributed type, TODO: explain
-type Columns<Row> = (EditableColumnConfigDist<Row, keyof Row> | MetaColumnConfig<Row>)[]
+// To specify the columns, we export the type `Columns<Row>`, which distributes over the row keys:
+//   (EditableColumn<Row, "key_1"> | .. | EditableColumn<Row, "key_n"> | MetaColumnConfig<Row>)[]
+//
+// This causes the types of eq and renderCell to be narrowed to each columns's cell type.
+// Internally, we use the more general `Column<Row>[]` type: (EditableColumn<Row, keyof Row> | MetaColumnConfig<Row>)[]
+export type Columns<Row> = (EditableColumnDist<Row, keyof Row> | MetaColumn<Row>)[]
 
 export type UpdateRowCell<Row> = <ColumnKey extends keyof Row>(
   columnKey: ColumnKey,
@@ -127,7 +128,7 @@ const renderEditableCell = <Row, ColumnKey extends keyof Row>(
   return cellRenderer(cellStateRef, cellEditStatus, editableRow[editableKey])
 }
 
-const renderMetaCell = <Row,>(column: MetaColumnConfig<Row>, editableRow: Editable<Row>) =>
+const renderMetaCell = <Row,>(column: MetaColumn<Row>, editableRow: Editable<Row>) =>
   column.renderMetaCell(editableRow, editableRow[editableKey])
 
 // Custom equality
@@ -150,7 +151,7 @@ const getColEqualityByRowKey = <Row,>(columns: EditableColumn<Row, keyof Row>[])
 const applyCellUpdate = <S,>(prevState: S, update: React.SetStateAction<S>) =>
   typeof update === 'function' ? (update as (prevState: S) => S)(prevState) : update
 
-const applyRowUpdate = <Row, ColumnKey extends keyof Row>(
+const applyRowCellUpdate = <Row, ColumnKey extends keyof Row>(
   equalityByRowKey: EqualityByRowKey<Row>,
   previousEditableRow: Editable<Row>,
   columnKey: ColumnKey,
@@ -162,7 +163,9 @@ const applyRowUpdate = <Row, ColumnKey extends keyof Row>(
   const updatedCellValue = applyCellUpdate(previousRow[columnKey], update)
   const updatedRow = { ...previousRow, [columnKey]: updatedCellValue }
 
-  const rowKeys = Object.keys(updatedRow) as (keyof Row)[]
+  const rowKeys = Object.keys(updatedRow) as (keyof Row)[] // TODO: Filter editable-cell keys.
+
+  // We don't keep track of cell dirty states, so we need to check all editable cells in the row.
   const isDirty = rowKeys.some((key) => {
     const eq = equalityByRowKey[key]
     return eq !== undefined ? !eq(updatedRow[key], pristine[key]) : updatedRow[key] !== pristine[key]
@@ -172,7 +175,8 @@ const applyRowUpdate = <Row, ColumnKey extends keyof Row>(
   return { ...updatedRow, [editableKey]: updatedEditStatus }
 }
 
-const createMkUpdateRowByRowId =
+// Generalize so we can use it for both updateRowCellByRowId and updateRowByRowId
+const createMkUpdateRowCellByRowId =
   <Row, RowIdKey extends keyof Row>(
     rowIdKey: RowIdKey,
     setRows: React.Dispatch<React.SetStateAction<Editable<Row>[]>>,
@@ -182,7 +186,10 @@ const createMkUpdateRowByRowId =
   (columnKey) =>
   (update) =>
     setRows((rows) =>
-      rows.map((row) => (row[rowIdKey] === rowId ? applyRowUpdate(equalityByRowKey, row, columnKey, update) : row)),
+      rows.map((row) =>
+        // OPT: Can stop after first match, but operation will still be O(n).
+        row[rowIdKey] === rowId ? applyRowCellUpdate(equalityByRowKey, row, columnKey, update) : row,
+      ),
     )
 
 // Components
@@ -214,7 +221,7 @@ const EditableRow = <Row,>({
   const cells = columns.map((column, index) => (
     <EditableCell key={`cell__${index}`} {...{ editableRow, updateRowCell, column }} />
   ))
-  return renderRow(cells, editableRow[editableKey], editableRow[editableKey].pristine) // TODO: pristine is redundant now.
+  return renderRow(cells, editableRow[editableKey])
 }
 
 interface HeaderCellProps {
@@ -407,7 +414,7 @@ export const useTableEditor = <Row, RowIdKey extends keyof Row>(
     commitRows: mkCommitRows(rowIdKey, setEditableRows),
   }
 
-  const updateRowCellByRowId = createMkUpdateRowByRowId(
+  const updateRowCellByRowId = createMkUpdateRowCellByRowId(
     rowIdKey,
     setEditableRows,
   )(getColEqualityByRowKey(filterEditablecolumns(columns)))
