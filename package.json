@@ -14,7 +14,7 @@
     "!dist/*.test.*"
   ],
   "scripts": {
-    "start": "react-scripts start",
+    "start": "PUBLIC_URL=/ react-scripts start",
     "eject": "react-scripts eject",
     "build": "tsc -p src/lib",
     "lint-check": "eslint --cache .",
