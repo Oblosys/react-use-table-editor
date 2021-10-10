@@ -107,13 +107,13 @@ type EditableColumnConfigDist<Row, ColumnKey extends keyof Row> = ColumnKey exte
 // Distributed type, TODO: explain
 type ColumnsProp<Row> = (EditableColumnConfigDist<Row, keyof Row> | MetaColumnConfig<Row>)[]
 
-type UpdateRowCell<Row, ColumnKey extends keyof Row> = (
+export type UpdateRowCell<Row> = <ColumnKey extends keyof Row>(
   columnKey: ColumnKey,
 ) => React.Dispatch<React.SetStateAction<Row[ColumnKey]>>
 
 const renderEditableCell = <Row, ColumnKey extends keyof Row>(
   column: EditableColumn<Row, ColumnKey>,
-  updateRowCell: UpdateRowCell<Row, ColumnKey>,
+  updateRowCell: UpdateRowCell<Row>,
   editableRow: Editable<Row>,
 ) => {
   const cellValue = editableRow[column.key]
@@ -145,6 +145,8 @@ const getColEqualityByRowKey = <Row,>(columns: EditableColumn<Row, keyof Row>[])
   return columnRecord
 }
 
+// Cell update
+
 const applyCellUpdate = <S,>(prevState: S, update: React.SetStateAction<S>) =>
   typeof update === 'function' ? (update as (prevState: S) => S)(prevState) : update
 
@@ -172,14 +174,14 @@ const applyRowUpdate = <Row, ColumnKey extends keyof Row>(
 }
 
 const createMkUpdateRowByRowId =
-  <Row, RowIdKey extends keyof Row, ColumnKey extends keyof Row>(
+  <Row, RowIdKey extends keyof Row>(
     rowIdKey: RowIdKey,
     setRows: React.Dispatch<React.SetStateAction<Editable<Row>[]>>,
   ) =>
   (equalityByRowKey: EqualityByRowKey<Row>) =>
-  (rowId: Row[RowIdKey]) =>
-  (columnKey: ColumnKey): React.Dispatch<React.SetStateAction<Row[ColumnKey]>> =>
-  (update: React.SetStateAction<Row[ColumnKey]>): void =>
+  (rowId: Row[RowIdKey]): UpdateRowCell<Row> =>
+  (columnKey) =>
+  (update) =>
     setRows((rows) =>
       rows.map((row) => (row[rowIdKey] === rowId ? applyRowUpdate(equalityByRowKey, row, columnKey, update) : row)),
     )
@@ -189,7 +191,7 @@ const createMkUpdateRowByRowId =
 type EditableCellProps<Row> = {
   column: Column<Row>
   editableRow: Editable<Row>
-  updateRowCell: UpdateRowCell<Row, keyof Row>
+  updateRowCell: UpdateRowCell<Row>
 }
 
 const EditableCell = <Row,>({ column, editableRow, updateRowCell }: EditableCellProps<Row>): ReactElement =>
@@ -200,7 +202,7 @@ const EditableCell = <Row,>({ column, editableRow, updateRowCell }: EditableCell
 type EditableRowProps<Row> = {
   columns: Columns<Row>
   editableRow: Editable<Row>
-  updateRowCell: UpdateRowCell<Row, keyof Row>
+  updateRowCell: UpdateRowCell<Row>
   renderRow?: RowRenderer<Row>
 }
 
@@ -232,9 +234,7 @@ type EditableTableProps<Row, RowIdKey extends keyof Row> = {
   className?: string
   rowIdKey: RowIdKey
   editableRows: Editable<Row>[]
-  mkUpdateRowCellByRowId: (
-    equalityByRowKey: EqualityByRowKey<Row>,
-  ) => (rowKey: Row[RowIdKey]) => UpdateRowCell<Row, keyof Row>
+  mkUpdateRowCellByRowId: (equalityByRowKey: EqualityByRowKey<Row>) => (rowKey: Row[RowIdKey]) => UpdateRowCell<Row>
   renderRow?: RowRenderer<Row>
   renderTable?: TableRenderer
   columns: ColumnsProp<Row>
@@ -367,9 +367,7 @@ type UseEditableTable<Row, RowIdKey extends keyof Row> = {
   }
   prim: {
     editableRows: Editable<Row>[]
-    mkUpdateRowCellByRowId: (
-      equalityByRowKey: EqualityByRowKey<Row>,
-    ) => (rowKey: Row[RowIdKey]) => UpdateRowCell<Row, keyof Row>
+    mkUpdateRowCellByRowId: (equalityByRowKey: EqualityByRowKey<Row>) => (rowKey: Row[RowIdKey]) => UpdateRowCell<Row>
   }
 }
 
