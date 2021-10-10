@@ -1,5 +1,7 @@
 import React, { ReactElement, useState } from 'react'
 
+import * as utils from './utils'
+
 export type StateRef<S> = [S, React.Dispatch<React.SetStateAction<S>>]
 
 export type EditStatus<Row> = { pristine: Row; isDirty: boolean; isNew: boolean; isRemoved: boolean }
@@ -299,13 +301,15 @@ const mkRemoveRows =
     const rowIdSetToRemove = getRowIdSet<Row, RowIdKey>(rowIdKey, rowsToRemove)
 
     setEditableRows((editableRows): Editable<Row>[] =>
-      editableRows.flatMap((editableRow) =>
-        rowIdSetToRemove.has(editableRow[rowIdKey])
-          ? editableRow[editableKey].isNew
-            ? [] // Revert removes new rows
-            : [setEditStatus({ isRemoved: true }, editableRow)]
-          : [editableRow],
-      ),
+      editableRows
+        .map((editableRow) =>
+          rowIdSetToRemove.has(editableRow[rowIdKey])
+            ? editableRow[editableKey].isNew
+              ? null // Removing a new row removes it, rather than setting isRemoved.
+              : setEditStatus({ isRemoved: true }, editableRow)
+            : editableRow,
+        )
+        .filter(utils.isDefined),
     )
   }
 
@@ -319,13 +323,15 @@ const mkRevertRows =
     const rowIdSetToRevert = getRowIdSet<Row, RowIdKey>(rowIdKey, rowsToRevert)
 
     setEditableRows((editableRows): Editable<Row>[] =>
-      editableRows.flatMap((editableRow) =>
-        rowIdSetToRevert.has(editableRow[rowIdKey])
-          ? editableRow[editableKey].isNew
-            ? [] // Revert removes new rows
-            : [mkEditable(editableRow[editableKey].pristine)]
-          : [editableRow],
-      ),
+      editableRows
+        .map((editableRow) =>
+          rowIdSetToRevert.has(editableRow[rowIdKey])
+            ? editableRow[editableKey].isNew
+              ? null // Reverting a new row removes it.
+              : mkEditable(editableRow[editableKey].pristine)
+            : editableRow,
+        )
+        .filter(utils.isDefined),
     )
   }
 
@@ -338,13 +344,15 @@ const mkCommitRows =
     const rowIdSetToCommit = getRowIdSet<Row, RowIdKey>(rowIdKey, rowsToCommit)
 
     setEditableRows((editableRows): Editable<Row>[] =>
-      editableRows.flatMap((editableRow) =>
-        rowIdSetToCommit.has(editableRow[rowIdKey])
-          ? editableRow[editableKey].isRemoved
-            ? [] // Commit removes removed rows.
-            : [mkEditable(stripEditable(editableRow))]
-          : [editableRow],
-      ),
+      editableRows
+        .map((editableRow) =>
+          rowIdSetToCommit.has(editableRow[rowIdKey])
+            ? editableRow[editableKey].isRemoved
+              ? null // Committing a removed row removes it.
+              : mkEditable(stripEditable(editableRow))
+            : editableRow,
+        )
+        .filter(utils.isDefined),
     )
   }
 
@@ -407,7 +415,7 @@ export const useTableEditor = <Row, RowIdKey extends keyof Row>(
   return { rows, edit, prim }
 }
 
-// Utils
+// Exported utils
 
 export const getEditStatusClassName = ({ isDirty, isNew, isRemoved }: EditStatus<unknown>): string =>
   [isDirty ? 'is-dirty' : '', isNew ? 'is-new' : '', isRemoved ? 'is-removed' : ''].join(' ')
