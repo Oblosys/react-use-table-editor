@@ -21,7 +21,7 @@ const testUsers: User[] = [
 
 test('edit.insert', () => {
   const newRow: User = { username: 'testuser', fullName: ['Test', 'User'], credits: 42 }
-  const hook = renderHook(() => useTableEditor('username', testUsers)).result
+  const hook = renderHook(() => useTableEditor('username', [], testUsers)).result
   act(() => hook.current.edit.insertRows([newRow]))
   const { editableRows } = hook.current.prim
 

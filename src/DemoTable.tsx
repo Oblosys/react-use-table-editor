@@ -2,6 +2,7 @@ import faker from 'faker'
 
 import { FullNameInput, IntegerInput } from './DemoInputs'
 import {
+  Columns,
   Editable,
   EditableTable,
   getEditStatusClassName,
@@ -32,7 +33,76 @@ const initialUsers: User[] = [
 const showUserNames = (users: User[]) => `[${users.map(({ username }) => `'${username}'`).join(', ')}]`
 
 export const DemoTable = (): JSX.Element => {
-  const { rows, edit, prim } = useTableEditor<User, 'username'>('username', initialUsers)
+  const columns: Columns<User> = [
+    {
+      title: 'Remove',
+      renderMetaCell: (editableRow, { isRemoved }) => (
+        <td className="remove-cell" onClick={() => edit.removeRows([editableRow])}>
+          {!isRemoved ? (
+            <span role="img" aria-label="Remove row">
+              ❌
+            </span>
+          ) : null}
+        </td>
+      ),
+    },
+    {
+      key: 'username',
+      title: 'Username',
+      renderHeaderCell: (title) => <th className="username-column">{title}</th>,
+      renderCell: ([username]) => <td className="value-cell">{username}</td>,
+    },
+    {
+      key: 'fullName',
+      title: 'Full name',
+      eq: ([pristineFirst, pristineLast], [currentFirst, currentLast]) =>
+        pristineFirst === currentFirst && pristineLast === currentLast,
+      renderCell: (fullNameState, { pristine: [pristineFirst, pristineLast] }, rowEditStatus) => {
+        const [[firstName, lastName]] = fullNameState
+        const isDirty: [boolean, boolean] = [firstName !== pristineFirst, lastName !== pristineLast]
+        return (
+          <td className="value-cell">
+            <FullNameInput stateRef={fullNameState} isDirty={isDirty} isDisabled={rowEditStatus.isRemoved} />
+          </td>
+        )
+      },
+    },
+    {
+      key: 'credits',
+      title: 'Credits',
+      renderHeaderCell: (title) => <th className="credits-column">{title}</th>,
+      renderCell: (state, { isDirty }, rowEditStatus) => (
+        <td className="value-cell">
+          <IntegerInput stateRef={state} isDirty={isDirty} isDisabled={rowEditStatus.isRemoved} />
+        </td>
+      ),
+    },
+    {
+      title: 'Undo',
+      renderHeaderCell: (title) => <th className="undo-column">{title}</th>,
+      renderMetaCell: (editableRow, rowEditStatus) => (
+        <td>
+          {rowEditStatus.isDirty || rowEditStatus.isNew || rowEditStatus.isRemoved ? (
+            // TODO: Just want one condition here.
+            <input type="button" value="undo" onClick={() => edit.revertRows([editableRow])} />
+          ) : null}
+        </td>
+      ),
+    },
+    {
+      title: 'Save',
+      renderHeaderCell: (title) => <th className="undo-column">{title}</th>,
+      renderMetaCell: (editableRow, rowEditStatus) => (
+        <td>
+          {rowEditStatus.isDirty || rowEditStatus.isNew || rowEditStatus.isRemoved ? (
+            <input type="button" value="save" onClick={handleSave([editableRow])} />
+          ) : null}
+        </td>
+      ),
+    },
+  ]
+
+  const { rows, edit, prim } = useTableEditor('username', columns, initialUsers)
 
   const handleAddRow = () => {
     const firstName = faker.name.firstName()
@@ -47,7 +117,7 @@ export const DemoTable = (): JSX.Element => {
     ])
   }
 
-  // A real-world handleSave can post the changes to a server and set the rows on success.
+  // A real-world handleSave can post the changes to a server and commit the rows on success.
   const handleSave = (rows: Editable<User>[]) => () => edit.commitRows(rows)
 
   const serverSideCredits = sumBy('credits', rows.pristine)
@@ -87,7 +157,7 @@ export const DemoTable = (): JSX.Element => {
         className="demo-table"
         rowIdKey="username"
         editableRows={prim.editableRows}
-        mkUpdateRowCellByRowId={prim.mkUpdateRowCellByRowId}
+        updateRowCellByRowId={prim.updateRowCellByRowId}
         renderRow={(renderedCells, editStatus) => (
           <tr className={getEditStatusClassName(editStatus)}>{renderedCells}</tr>
         )}
@@ -99,73 +169,7 @@ export const DemoTable = (): JSX.Element => {
             <tbody>{renderedRows}</tbody>
           </table>
         )}
-        columns={[
-          {
-            title: 'Remove',
-            renderMetaCell: (editableRow, { isRemoved }) => (
-              <td className="remove-cell" onClick={() => edit.removeRows([editableRow])}>
-                {!isRemoved ? (
-                  <span role="img" aria-label="Remove row">
-                    ❌
-                  </span>
-                ) : null}
-              </td>
-            ),
-          },
-          {
-            key: 'username',
-            title: 'Username',
-            renderHeaderCell: (title) => <th className="username-column">{title}</th>,
-            renderCell: ([username]) => <td className="value-cell">{username}</td>,
-          },
-          {
-            key: 'fullName',
-            title: 'Full name',
-            eq: ([pristineFirst, pristineLast], [currentFirst, currentLast]) =>
-              pristineFirst === currentFirst && pristineLast === currentLast,
-            renderCell: (fullNameState, { pristine: [pristineFirst, pristineLast] }, rowEditStatus) => {
-              const [[firstName, lastName]] = fullNameState
-              const isDirty: [boolean, boolean] = [firstName !== pristineFirst, lastName !== pristineLast]
-              return (
-                <td className="value-cell">
-                  <FullNameInput stateRef={fullNameState} isDirty={isDirty} isDisabled={rowEditStatus.isRemoved} />
-                </td>
-              )
-            },
-          },
-          {
-            key: 'credits',
-            title: 'Credits',
-            renderHeaderCell: (title) => <th className="credits-column">{title}</th>,
-            renderCell: (state, { isDirty }, rowEditStatus) => (
-              <td className="value-cell">
-                <IntegerInput stateRef={state} isDirty={isDirty} isDisabled={rowEditStatus.isRemoved} />
-              </td>
-            ),
-          },
-          {
-            title: 'Undo',
-            renderHeaderCell: (title) => <th className="undo-column">{title}</th>,
-            renderMetaCell: (editableRow, rowEditStatus) => (
-              <td>
-                {rowEditStatus.isDirty || rowEditStatus.isNew || rowEditStatus.isRemoved ? ( // TODO: Just want one condition here.
-                  <input type="button" value="undo" onClick={() => edit.revertRows([editableRow])} />
-                ) : null}
-              </td>
-            ),
-          },
-          {
-            title: 'Save',
-            renderHeaderCell: (title) => <th className="undo-column">{title}</th>,
-            renderMetaCell: (editableRow, rowEditStatus) => (
-              <td>
-                {rowEditStatus.isDirty || rowEditStatus.isNew || rowEditStatus.isRemoved ? (
-                  <input type="button" value="save" onClick={handleSave([editableRow])} />
-                ) : null}
-              </td>
-            ),
-          },
-        ]}
+        columns={prim.columns}
       />
 
       <h3>Debug</h3>

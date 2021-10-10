@@ -99,7 +99,6 @@ type MetaColumnConfig<Row> = {
 }
 
 type Column<Row> = EditableColumn<Row, keyof Row> | MetaColumnConfig<Row>
-type Columns<Row> = Column<Row>[]
 
 // Force distribution over row keys.
 type EditableColumnConfigDist<Row, ColumnKey extends keyof Row> = ColumnKey extends keyof Row
@@ -107,7 +106,7 @@ type EditableColumnConfigDist<Row, ColumnKey extends keyof Row> = ColumnKey exte
   : never
 
 // Distributed type, TODO: explain
-type ColumnsProp<Row> = (EditableColumnConfigDist<Row, keyof Row> | MetaColumnConfig<Row>)[]
+type Columns<Row> = (EditableColumnConfigDist<Row, keyof Row> | MetaColumnConfig<Row>)[]
 
 export type UpdateRowCell<Row> = <ColumnKey extends keyof Row>(
   columnKey: ColumnKey,
@@ -201,7 +200,7 @@ const EditableCell = <Row,>({ column, editableRow, updateRowCell }: EditableCell
     : renderMetaCell(column, editableRow)
 
 type EditableRowProps<Row> = {
-  columns: Columns<Row> // Columns<Row> instead of ColumnsProp<Row> as it is easier to use and EditableRow is internal.
+  columns: Column<Row>[]
   editableRow: Editable<Row>
   updateRowCell: UpdateRowCell<Row>
   renderRow?: RowRenderer<Row>
@@ -235,22 +234,21 @@ type EditableTableProps<Row, RowIdKey extends keyof Row> = {
   className?: string
   rowIdKey: RowIdKey
   editableRows: Editable<Row>[]
-  mkUpdateRowCellByRowId: (equalityByRowKey: EqualityByRowKey<Row>) => (rowKey: Row[RowIdKey]) => UpdateRowCell<Row>
+  updateRowCellByRowId: (rowKey: Row[RowIdKey]) => UpdateRowCell<Row>
   renderRow?: RowRenderer<Row>
   renderTable?: TableRenderer
-  columns: ColumnsProp<Row>
+  columns: Column<Row>[] // Column<Row>[] instead of Columns<Row> as it is easier to use and EditableRow is internal.
 }
 
 export const EditableTable = <Row, RowIdKey extends keyof Row>({
   className,
   rowIdKey,
   editableRows,
-  mkUpdateRowCellByRowId,
+  updateRowCellByRowId,
   renderRow,
   renderTable,
   columns,
 }: EditableTableProps<Row, RowIdKey>): ReactElement => {
-  const udateRowCellByRowId = mkUpdateRowCellByRowId(getColEqualityByRowKey(filterEditablecolumns(columns)))
   const renderedHeaderCells = columns.map((column, index) => (
     // Index keys are fine since columns are assumed to be constant.
     <HeaderCell key={index} title={column.title} renderHeaderCell={column.renderHeaderCell} />
@@ -263,7 +261,7 @@ export const EditableTable = <Row, RowIdKey extends keyof Row>({
         key={key}
         editableRow={row}
         renderRow={renderRow}
-        updateRowCell={udateRowCellByRowId(row[rowIdKey])}
+        updateRowCell={updateRowCellByRowId(row[rowIdKey])}
       />
     )
   })
@@ -374,12 +372,14 @@ type UseTableEditor<Row, RowIdKey extends keyof Row> = {
   }
   prim: {
     editableRows: Editable<Row>[]
-    mkUpdateRowCellByRowId: (equalityByRowKey: EqualityByRowKey<Row>) => (rowKey: Row[RowIdKey]) => UpdateRowCell<Row>
+    updateRowCellByRowId: (rowKey: Row[RowIdKey]) => UpdateRowCell<Row>
+    columns: Column<Row>[]
   }
 }
 
 export const useTableEditor = <Row, RowIdKey extends keyof Row>(
   rowIdKey: RowIdKey,
+  columns: Columns<Row>,
   initialRows: Row[],
 ): UseTableEditor<Row, RowIdKey> => {
   const state = useState<Editable<Row>[]>(initialRows.map(mkEditable))
@@ -407,9 +407,16 @@ export const useTableEditor = <Row, RowIdKey extends keyof Row>(
     revertRows: mkRevertRows(rowIdKey, setEditableRows),
     commitRows: mkCommitRows(rowIdKey, setEditableRows),
   }
+
+  const updateRowCellByRowId = createMkUpdateRowByRowId(
+    rowIdKey,
+    setEditableRows,
+  )(getColEqualityByRowKey(filterEditablecolumns(columns)))
+
   const prim = {
     editableRows,
-    mkUpdateRowCellByRowId: createMkUpdateRowByRowId(rowIdKey, setEditableRows),
+    columns,
+    updateRowCellByRowId,
   }
   return { rows, edit, prim }
 }
