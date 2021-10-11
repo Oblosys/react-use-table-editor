@@ -32,6 +32,7 @@ module.exports = {
     'no-unused-vars': 'off', // Needs to be disabled: https://github.com/typescript-eslint/typescript-eslint/blob/master/packages/eslint-plugin/docs/rules/no-unused-vars.md#how-to-use
     '@typescript-eslint/no-empty-interface': 'warn',
     '@typescript-eslint/no-unused-vars': 'warn',
+    'arrow-body-style': ['warn', 'as-needed'],
     'import/order': [
       'warn',
       {

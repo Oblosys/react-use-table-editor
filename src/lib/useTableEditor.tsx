@@ -85,9 +85,8 @@ type EditableColumn<Row, ColumnKey extends keyof Row> = {
 
 const isEditableColumn = <Row,>(column: Column<Row>): column is EditableColumn<Row, keyof Row> => 'key' in column
 
-const filterEditablecolumns = <Row,>(columns: Column<Row>[]): EditableColumn<Row, keyof Row>[] => {
-  return columns.filter(isEditableColumn)
-}
+const filterEditablecolumns = <Row,>(columns: Column<Row>[]): EditableColumn<Row, keyof Row>[] =>
+  columns.filter(isEditableColumn)
 
 type MetaColumnConfig<Row> = {
   // A column that's not for a editing a specific field, but for actions on the row, like remove, undo, etc.
