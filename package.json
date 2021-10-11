@@ -1,7 +1,7 @@
 {
   "name": "react-use-table-editor",
   "author": "Martijn Schrage (https://www.oblomov.com)",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "React hook that provides dirty-tracking on table rows and cells",
   "main": "./dist/useTableEditor.js",
   "typings": "./dist/useTableEditor.d.ts",
