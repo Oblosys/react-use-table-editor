@@ -16,7 +16,7 @@ export const IntegerInput = ({
     className={'integer-input' + (isDirty ? ' is-dirty' : '')}
     type="text"
     value={val}
-    onChange={(e) => setVal(zeroForNaN(+e.target.value))}
+    onChange={({ target: { value } }) => setVal(zeroForNaN(+value))}
     disabled={isDisabled}
   />
 )
@@ -37,14 +37,14 @@ export const FullNameInput = ({
       className={'name-input' + (isDirtyFirst ? ' is-dirty' : '')}
       type="text"
       value={firstName}
-      onChange={(e) => setName(([, previousLastName]) => [e.target.value, previousLastName])}
+      onChange={({ target: { value } }) => setName(([, previousLastName]) => [value, previousLastName])}
       disabled={isDisabled}
     />
     <input
       className={'name-input' + (isDirtyLast ? ' is-dirty' : '')}
       type="text"
       value={lastName}
-      onChange={(e) => setName(([previousFirstName]) => [previousFirstName, e.target.value])}
+      onChange={({ target: { value } }) => setName(([previousFirstName]) => [previousFirstName, value])}
       disabled={isDisabled}
     />
   </span>
