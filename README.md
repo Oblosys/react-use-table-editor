@@ -44,3 +44,21 @@ The demo table app in this repository ([available on CodeSandbox](https://codesa
 > npm install
 > npm start
 ```
+
+To have the demo hot reload on changes to the package sources in [`/packages/react-use-table-editor/src/`](https://github.com/Oblosys/react-use-table-editor/blob/master/packages/react-use-table-editor/src/), link the package with
+
+```sh
+> npm run link
+```
+
+build it with
+
+```sh
+npm run build-watch
+```
+
+and launch the demo from a different terminal with
+
+```sh
+> npm start
+```
