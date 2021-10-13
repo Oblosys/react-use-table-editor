@@ -8,7 +8,7 @@
     "url": "git+https://github.com/Oblosys/react-use-table-editor.git"
   },
   "scripts": {
-    "start": "PUBLIC_URL=/ react-scripts start",
+    "start": "react-scripts start",
     "eject": "react-scripts eject",
     "build": "cd packages/react-use-table-editor && npm run build",
     "clean": "cd packages/react-use-table-editor && npm run clean",
@@ -33,7 +33,6 @@
   "bugs": {
     "url": "https://github.com/Oblosys/react-use-table-editor/issues"
   },
-  "homepage": "https://github.com/Oblosys/react-use-table-editor#readme",
   "eslintConfig": {
     "extends": [
       "react-app",
