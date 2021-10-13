@@ -33,6 +33,8 @@ const initialUsers: User[] = [
 const showUserNames = (users: User[]) => `[${users.map(({ username }) => `'${username}'`).join(', ')}]`
 
 export const DemoTable = (): JSX.Element => {
+  // Disable warning for CodeSandbox deployment. Using `edit` in handlers is safe, but triggers eslint.
+  /* eslint-disable @typescript-eslint/no-use-before-define */
   const columns: Columns<User> = [
     {
       title: 'Remove',
@@ -101,6 +103,7 @@ export const DemoTable = (): JSX.Element => {
       ),
     },
   ]
+  /* eslint-enable @typescript-eslint/no-use-before-define */
 
   const { rows, edit, prim } = useTableEditor('username', columns, initialUsers)
 
