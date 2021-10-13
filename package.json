@@ -11,6 +11,7 @@
     "start": "react-app-rewired start",
     "eject": "react-app-rewired eject",
     "build": "cd packages/react-use-table-editor && npm run build",
+    "build-watch": "cd packages/react-use-table-editor && npm run build-watch",
     "clean": "cd packages/react-use-table-editor && npm run clean",
     "lint-check": "eslint --cache .",
     "lint-fix": "npm run lint-check -- --fix",
