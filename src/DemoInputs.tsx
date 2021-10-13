@@ -1,4 +1,4 @@
-import { StateRef } from './lib/useTableEditor'
+import { StateRef } from '../packages/react-use-table-editor/src/useTableEditor'
 
 const zeroForNaN = (num: number) => (isNaN(num) ? 0 : num)
 
