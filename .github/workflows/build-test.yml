@@ -19,5 +19,5 @@ jobs:
       - run: npm ci
       - run: npm run --silent prettier-check
       - run: npm run --silent lint-check
+      - run: npm run --silent build
       - run: npm test
-      # TODO: Build npm package

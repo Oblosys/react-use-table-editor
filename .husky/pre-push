@@ -1,5 +1,7 @@
 #!/bin/sh
 . "$(dirname "$0")/_/husky.sh"
 
-# pre-commit runs pretty-check & lint-check, so just test here. A full check is done on a GitHub action anyway.
+# The pre-commit hook runs pretty-check & lint-check, so just build and test here.
+# A full check is done in the GitHub build-test action anyway.
+npm run --silent build
 npm test
