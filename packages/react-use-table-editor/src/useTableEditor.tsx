@@ -1,5 +1,6 @@
 import React, { ReactElement, useState } from 'react'
 
+import { editableKey } from './editableKey'
 import * as utils from './utils'
 
 export type StateRef<S> = [S, React.Dispatch<React.SetStateAction<S>>]
@@ -15,9 +16,6 @@ const setEditStatus = <Row,>(editStatus: Partial<EditStatus<Row>>, editableRow: 
   ...editableRow,
   [editableKey]: { ...editableRow[editableKey], ...editStatus },
 })
-
-// Non-exported symbol to identify editable rows.
-const editableKey = Symbol('editable')
 
 // TODO: Explain: No constraints to object or Record<PropertyKey, unknown>. Doesn't add much, is more verbose, and
 // Record causes issues with interfaces.
