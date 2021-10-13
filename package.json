@@ -52,14 +52,11 @@
       "last 1 safari version"
     ]
   },
-  "workspaces": [
-    "packages/**"
-  ],
   "dependencies": {
     "faker": "^5.5.3",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
-    "react-use-table-editor": "workspace:*"
+    "react-use-table-editor": "0.1.1"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^5.14.1",
