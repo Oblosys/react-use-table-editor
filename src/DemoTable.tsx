@@ -1,5 +1,4 @@
 import faker from 'faker'
-
 import {
   Columns,
   Editable,
@@ -9,7 +8,8 @@ import {
   getPristineRow,
   stripEditable,
   useTableEditor,
-} from '../packages/react-use-table-editor/src/useTableEditor'
+} from 'react-use-table-editor'
+
 import { FullNameInput, IntegerInput } from './DemoInputs'
 
 import './DemoTable.css'

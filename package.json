@@ -1,23 +1,17 @@
 {
-  "name": "react-use-table-editor",
+  "name": "react-use-table-editor-demo",
   "author": "Martijn Schrage (https://www.oblomov.com)",
   "version": "0.1.1",
-  "description": "React hook that provides dirty-tracking on table rows and cells",
-  "main": "./dist/useTableEditor.js",
-  "typings": "./dist/useTableEditor.d.ts",
+  "description": "Demo of react-use-table-editor (see ./packages/react-use-table-editor/)",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Oblosys/react-use-table-editor.git"
   },
-  "files": [
-    "dist/*",
-    "!dist/*.test.*"
-  ],
   "scripts": {
     "start": "PUBLIC_URL=/ react-scripts start",
     "eject": "react-scripts eject",
-    "build": "tsc -p src/lib",
-    "clean": "rm -rf dist",
+    "build": "cd packages/react-use-table-editor && npm run build",
+    "clean": "cd packages/react-use-table-editor && npm run clean",
     "lint-check": "eslint --cache .",
     "lint-fix": "npm run lint-check -- --fix",
     "prepare": "husky install",
@@ -58,6 +52,15 @@
       "last 1 safari version"
     ]
   },
+  "workspaces": [
+    "packages/**"
+  ],
+  "dependencies": {
+    "faker": "^5.5.3",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "react-use-table-editor": "workspace:*"
+  },
   "devDependencies": {
     "@testing-library/jest-dom": "^5.14.1",
     "@testing-library/react": "^12.1.2",
@@ -76,16 +79,9 @@
     "eslint-plugin-jest": "25.0.1",
     "eslint-plugin-react": "7.26.1",
     "eslint-plugin-react-hooks": "4.2.0",
-    "faker": "^5.5.3",
     "husky": "^7.0.2",
     "prettier": "^2.4.1",
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2",
     "react-scripts": "4.0.3",
     "typescript": "^4.4.3"
-  },
-  "peerDependencies": {
-    "react": "^16.8.0 || ^17.0.0",
-    "react-dom": "^16.8.0 || ^17.0.0"
   }
 }
