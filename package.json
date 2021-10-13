@@ -8,8 +8,8 @@
     "url": "git+https://github.com/Oblosys/react-use-table-editor.git"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "eject": "react-scripts eject",
+    "start": "react-app-rewired start",
+    "eject": "react-app-rewired eject",
     "build": "cd packages/react-use-table-editor && npm run build",
     "clean": "cd packages/react-use-table-editor && npm run clean",
     "lint-check": "eslint --cache .",
@@ -19,7 +19,7 @@
     "prettier-check": "prettier -l '**/*.{ts,tsx,json,md,js,scss,yml}'",
     "prettier-fix": "npm run prettier-check -- --write",
     "test": "npm run test-watch -- --watchAll=false",
-    "test-watch": "react-scripts test"
+    "test-watch": "react-app-rewired test"
   },
   "keywords": [
     "react",
@@ -72,6 +72,7 @@
     "@types/react-dom": "^17.0.9",
     "@typescript-eslint/eslint-plugin": "^4.33.0",
     "@typescript-eslint/parser": "4.33.0",
+    "customize-cra": "^1.0.0",
     "eslint": "^7.32.0",
     "eslint-config-prettier": "8.3.0",
     "eslint-plugin-import": "^2.24.2",
@@ -80,6 +81,7 @@
     "eslint-plugin-react-hooks": "4.2.0",
     "husky": "^7.0.2",
     "prettier": "^2.4.1",
+    "react-app-rewired": "^2.1.8",
     "react-scripts": "4.0.3",
     "typescript": "^4.4.3"
   }
