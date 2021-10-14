@@ -20,8 +20,8 @@
     "prepublishOnly": "npm run clean && npm run prettier-check && npm run lint-check && npm run build && npm test",
     "prettier-check": "prettier -l '**/*.{ts,tsx,json,md,js,scss,yml}'",
     "prettier-fix": "npm run prettier-check -- --write",
-    "test": "npm run test-watch -- --watchAll=false",
-    "test-watch": "react-app-rewired test"
+    "test": "cd packages/react-use-table-editor && npm run test",
+    "test-watch": "cd packages/react-use-tables-editor && npm run test-watch"
   },
   "keywords": [
     "react",
@@ -82,6 +82,7 @@
     "prettier": "^2.4.1",
     "react-app-rewired": "^2.1.8",
     "react-scripts": "4.0.3",
+    "ts-jest": "^26.5.6",
     "typescript": "^4.4.3"
   }
 }

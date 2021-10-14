@@ -16,7 +16,9 @@
   "scripts": {
     "build": "tsc",
     "build-watch": "npm run --silent build -- --watch",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "test": "jest",
+    "test-watch": "jest --watch"
   },
   "keywords": [
     "react",
