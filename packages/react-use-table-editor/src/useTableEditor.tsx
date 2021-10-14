@@ -288,7 +288,7 @@ export const mkInsertRows =
     setEditableRows: React.Dispatch<React.SetStateAction<Editable<Row>[]>>,
   ) =>
   (rowsToInsert: Row[]): void =>
-    setEditableRows((editableRows): Editable<Row>[] => [
+    setEditableRows((editableRows) => [
       ...editableRows,
       ...rowsToInsert.map((row) => setEditStatus({ isNew: true }, mkEditable(row))),
     ])
@@ -301,7 +301,7 @@ const mkRemoveRows =
   (rowsToRemove: Row[]) => {
     const rowIdSetToRemove = getRowIdSet<Row, RowIdKey>(rowIdKey, rowsToRemove)
 
-    setEditableRows((editableRows): Editable<Row>[] =>
+    setEditableRows((editableRows) =>
       editableRows
         .map((editableRow) =>
           rowIdSetToRemove.has(editableRow[rowIdKey])
@@ -323,7 +323,7 @@ const mkRevertRows =
   (rowsToRevert: Row[]) => {
     const rowIdSetToRevert = getRowIdSet<Row, RowIdKey>(rowIdKey, rowsToRevert)
 
-    setEditableRows((editableRows): Editable<Row>[] =>
+    setEditableRows((editableRows) =>
       editableRows
         .map((editableRow) =>
           rowIdSetToRevert.has(editableRow[rowIdKey])
@@ -344,7 +344,7 @@ const mkCommitRows =
   (rowsToCommit: Row[]) => {
     const rowIdSetToCommit = getRowIdSet<Row, RowIdKey>(rowIdKey, rowsToCommit)
 
-    setEditableRows((editableRows): Editable<Row>[] =>
+    setEditableRows((editableRows) =>
       editableRows
         .map((editableRow) =>
           rowIdSetToCommit.has(editableRow[rowIdKey])
