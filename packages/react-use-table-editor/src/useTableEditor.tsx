@@ -31,9 +31,15 @@ const mkEditable = <Row,>(row: Row): Editable<Row> => ({
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const stripEditable = <Row,>({ [editableKey]: edit, ...row }: Editable<Row>): Row => row as unknown as Row
 
+export const getEditStatus = <Row,>(row: Editable<Row>): EditStatus<Row> => row[editableKey]
+
 export const getPristineRow = <Row,>(row: Editable<Row>): Row => row[editableKey].pristine
 
 export const getIsDirty = <Row,>(row: Editable<Row>): boolean => row[editableKey].isDirty
+
+export const getIsNew = <Row,>(row: Editable<Row>): boolean => row[editableKey].isNew
+
+export const getIsRemoved = <Row,>(row: Editable<Row>): boolean => row[editableKey].isRemoved
 
 const getRowIdSet = <Row, RowIdKey extends keyof Row>(rowIdKey: RowIdKey, rows: Row[]): Set<Row[RowIdKey]> =>
   new Set(rows.map((row) => row[rowIdKey]))
@@ -359,7 +365,7 @@ const mkCommitRows =
 
 // Hook
 
-type UseTableEditor<Row, RowIdKey extends keyof Row> = {
+export type UseTableEditor<Row, RowIdKey extends keyof Row> = {
   rows: {
     current: Row[]
     pristine: Row[]
