@@ -18,6 +18,8 @@ interface User {
   credits: number
 }
 
+const editableRowKeys: (keyof User)[] = ['fullName', 'credits']
+
 const testUsers: User[] = [
   { username: 'dan', fullName: ['Toucan', 'Dan'], credits: 10 },
   { username: 'dave', fullName: ['Chiquita', 'Dave'], credits: 80 },
@@ -31,6 +33,7 @@ const columns: Columns<User> = [
     eq: ([pristineFirst, pristineLast], [currentFirst, currentLast]) =>
       pristineFirst === currentFirst && pristineLast === currentLast,
   },
+  { key: 'credits' },
 ]
 
 let hook: RenderResult<UseTableEditor<User, 'username'>>
@@ -121,7 +124,7 @@ describe('updateRowByRowId', () => {
     const editableTestUsers = testUsers.map(mkEditable)
     const rowUpdate: (prev: User) => User = (prev) => ({ ...prev, credits: prev.credits + 1 })
 
-    const updatedRows = applyRowUpdateByRowId('username', {}, 'dave', rowUpdate)(editableTestUsers)
+    const updatedRows = applyRowUpdateByRowId('username', editableRowKeys, {}, 'dave', rowUpdate)(editableTestUsers)
     expect(updatedRows).toHaveLength(4)
   })
 })
