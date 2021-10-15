@@ -3,8 +3,8 @@
   "author": "Martijn Schrage (https://www.oblomov.com)",
   "version": "0.1.1",
   "description": "React hook that provides dirty-tracking on table rows and cells",
-  "main": "./dist/useTableEditor.js",
-  "typings": "./dist/useTableEditor.d.ts",
+  "main": "./dist/index.js",
+  "typings": "./dist/index.d.ts",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Oblosys/react-use-table-editor.git"

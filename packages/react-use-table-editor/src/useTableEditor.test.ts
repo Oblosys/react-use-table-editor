@@ -2,15 +2,8 @@ import '@testing-library/react'
 
 import { RenderResult, act, renderHook } from '@testing-library/react-hooks'
 
-import {
-  Columns,
-  Editable,
-  UseTableEditor,
-  applyRowUpdateByRowId,
-  getEditStatus,
-  mkEditable,
-  useTableEditor,
-} from './useTableEditor'
+import { Columns, Editable, getEditStatus, mkEditable } from './editable'
+import { UseTableEditor, applyRowUpdateByRowId, useTableEditor } from './useTableEditor'
 
 interface User {
   username: string
