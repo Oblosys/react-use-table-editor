@@ -21,7 +21,7 @@
     "prettier-check": "prettier -l '**/*.{ts,tsx,json,md,js,scss,yml}'",
     "prettier-fix": "npm run prettier-check -- --write",
     "test": "cd packages/react-use-table-editor && npm run test",
-    "test-watch": "cd packages/react-use-tables-editor && npm run test-watch"
+    "test-watch": "cd packages/react-use-table-editor && npm run test-watch"
   },
   "keywords": [
     "react",
