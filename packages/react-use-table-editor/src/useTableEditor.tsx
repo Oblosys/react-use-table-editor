@@ -79,7 +79,7 @@ const defaultTableRenderer: TableRenderer = (renderedHeaderCells, renderedRows) 
 )
 type EditableColumn<Row, ColumnKey extends keyof Row> = {
   key: ColumnKey
-  title: string
+  title?: string
   eq?: (pristine: Row[ColumnKey], current: Row[ColumnKey]) => boolean
   renderHeaderCell?: HeaderCellRenderer
   renderCell?: CellRenderer<Row, ColumnKey>
