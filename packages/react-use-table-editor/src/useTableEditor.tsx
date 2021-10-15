@@ -21,7 +21,7 @@ const setEditStatus = <Row,>(editStatus: Partial<EditStatus<Row>>, editableRow: 
 // Record causes issues with interfaces.
 export type Editable<Row> = Row & { [editableKey]: EditStatus<Row> }
 
-const mkEditable = <Row,>(row: Row): Editable<Row> => ({
+export const mkEditable = <Row,>(row: Row): Editable<Row> => ({
   ...row,
   [editableKey]: { pristine: row, isDirty: false, isNew: false, isRemoved: false },
 })
@@ -141,13 +141,12 @@ type EqualityByRowKey<Row> = {
   [K in keyof Row]?: EditableColumn<Row, K>['eq']
 }
 
-const getColEqualityByRowKey = <Row,>(columns: EditableColumn<Row, keyof Row>[]): EqualityByRowKey<Row> => {
-  const columnRecord: EqualityByRowKey<Row> = {}
-  for (const columnDistr of columns) {
-    const column = columnDistr as EditableColumn<Row, keyof Row>
-    columnRecord[column.key] = column.eq
+const getEqualityByRowKey = <Row,>(columns: EditableColumn<Row, keyof Row>[]): EqualityByRowKey<Row> => {
+  const equalityByRowKey: EqualityByRowKey<Row> = {}
+  for (const column of columns) {
+    equalityByRowKey[column.key] = column.eq
   }
-  return columnRecord
+  return equalityByRowKey
 }
 
 // Cell update
@@ -155,46 +154,62 @@ const getColEqualityByRowKey = <Row,>(columns: EditableColumn<Row, keyof Row>[])
 const applyCellUpdate = <S,>(prevState: S, update: React.SetStateAction<S>) =>
   typeof update === 'function' ? (update as (prevState: S) => S)(prevState) : update
 
-const applyRowCellUpdate = <Row, ColumnKey extends keyof Row>(
-  equalityByRowKey: EqualityByRowKey<Row>,
-  previousEditableRow: Editable<Row>,
-  columnKey: ColumnKey,
-  update: React.SetStateAction<Row[ColumnKey]>,
-): Editable<Row> => {
-  const previousRow = stripEditable(previousEditableRow)
-  const pristine = previousEditableRow[editableKey].pristine
+const computeIsDirty = <Row,>(equalityByRowKey: EqualityByRowKey<Row>, pristine: Row, row: Row): boolean => {
+  const rowKeys = Object.keys(row) as (keyof Row)[] // TODO: Filter editable-cell keys.
 
-  const updatedCellValue = applyCellUpdate(previousRow[columnKey], update)
-  const updatedRow = { ...previousRow, [columnKey]: updatedCellValue }
-
-  const rowKeys = Object.keys(updatedRow) as (keyof Row)[] // TODO: Filter editable-cell keys.
-
-  // We don't keep track of cell dirty states, so we need to check all editable cells in the row.
-  const isDirty = rowKeys.some((key) => {
-    const eq = equalityByRowKey[key]
-    return eq !== undefined ? !eq(updatedRow[key], pristine[key]) : updatedRow[key] !== pristine[key]
+  return rowKeys.some((key) => {
+    const eq = equalityByRowKey[key] ?? ((c1, c2) => c1 === c2)
+    return !eq(row[key], pristine[key])
   })
+}
 
-  const updatedEditStatus = { ...previousEditableRow[editableKey], isDirty }
+const applyRowUpdate = <Row,>(
+  equalityByRowKey: EqualityByRowKey<Row>,
+  rowUpdate: (prev: Row) => Row,
+  editableRow: Editable<Row>,
+): Editable<Row> => {
+  const editStatus = getEditStatus(editableRow)
+  const updatedRow = rowUpdate(stripEditable(editableRow))
+  const updatedEditStatus = {
+    ...editStatus,
+    isDirty: computeIsDirty(equalityByRowKey, editStatus.pristine, updatedRow),
+  }
   return { ...updatedRow, [editableKey]: updatedEditStatus }
 }
 
-// Generalize so we can use it for both updateRowCellByRowId and updateRowByRowId
-const createMkUpdateRowCellByRowId =
+// Apply rowUpdate to row with id rowID, and set isDirty on the updated editable row.
+export const applyRowUpdateByRowId =
   <Row, RowIdKey extends keyof Row>(
     rowIdKey: RowIdKey,
-    setRows: React.Dispatch<React.SetStateAction<Editable<Row>[]>>,
+    equalityByRowKey: EqualityByRowKey<Row>,
+    rowId: Row[RowIdKey],
+    rowUpdate: (prev: Row) => Row,
   ) =>
-  (equalityByRowKey: EqualityByRowKey<Row>) =>
+  (editableRows: Editable<Row>[]): Editable<Row>[] => {
+    const rowIndex = editableRows.findIndex((row) => row[rowIdKey] === rowId)
+    if (rowIndex === -1) {
+      throw new Error(`applyRowUpdateByRowId: update on non-existent row id ${rowId}`)
+    }
+    const editableRowToUpdate = applyRowUpdate(equalityByRowKey, rowUpdate, editableRows[rowIndex])
+    const leadingRows = editableRows.slice(0, rowIndex)
+    const trailingRows = editableRows.slice(rowIndex + 1)
+    return [...leadingRows, editableRowToUpdate, ...trailingRows]
+  }
+
+// Curried updater for cells, to be used in table component.
+export const createMkUpdateRowCellByRowId =
+  <Row, RowIdKey extends keyof Row>(updateRow: (rowUpdate: (prev: Row) => Row, rowIdToUpdate: Row[RowIdKey]) => void) =>
   (rowId: Row[RowIdKey]): UpdateRowCell<Row> =>
   (columnKey) =>
-  (update) =>
-    setRows((rows) =>
-      rows.map((row) =>
-        // OPT: Can stop after first match, but operation will still be O(n).
-        row[rowIdKey] === rowId ? applyRowCellUpdate(equalityByRowKey, row, columnKey, update) : row,
-      ),
+  (update) => {
+    updateRow(
+      (previousRow) => ({
+        ...previousRow,
+        [columnKey]: applyCellUpdate(previousRow[columnKey], update),
+      }),
+      rowId,
     )
+  }
 
 // Components
 
@@ -244,7 +259,7 @@ type EditableTableProps<Row, RowIdKey extends keyof Row> = {
   className?: string
   rowIdKey: RowIdKey
   editableRows: Editable<Row>[]
-  updateRowCellByRowId: (rowKey: Row[RowIdKey]) => UpdateRowCell<Row>
+  updateRow: (rowUpdate: (prev: Row) => Row, row: Row | Row[RowIdKey]) => void
   renderRow?: RowRenderer<Row>
   renderTable?: TableRenderer
   columns: Column<Row>[] // Column<Row>[] instead of Columns<Row> as it is easier to use and EditableRow is internal.
@@ -254,11 +269,13 @@ export const EditableTable = <Row, RowIdKey extends keyof Row>({
   className,
   rowIdKey,
   editableRows,
-  updateRowCellByRowId,
+  updateRow,
   renderRow,
   renderTable,
   columns,
 }: EditableTableProps<Row, RowIdKey>): ReactElement => {
+  const updateRowCellByRowId = createMkUpdateRowCellByRowId<Row, RowIdKey>(updateRow)
+
   const renderedHeaderCells = columns.map((column, index) => (
     // Index keys are fine since columns are assumed to be constant.
     <HeaderCell key={index} title={column.title} renderHeaderCell={column.renderHeaderCell} />
@@ -363,6 +380,21 @@ const mkCommitRows =
     )
   }
 
+const isRow = <Row, RowIdKey extends keyof Row>(rowIdKey: RowIdKey, rowOrId: Row | Row[RowIdKey]): rowOrId is Row =>
+  typeof rowOrId === 'object' && rowIdKey in rowOrId
+
+const mkUpdateRow =
+  <Row, RowIdKey extends keyof Row>(
+    rowIdKey: RowIdKey,
+    equalityByRowKey: EqualityByRowKey<Row>,
+    setEditableRows: React.Dispatch<React.SetStateAction<Editable<Row>[]>>,
+  ) =>
+  (rowUpdate: (prev: Row) => Row, rowOrIdToUpdate: Row | Row[RowIdKey]) => {
+    const rowIdToUpdate = isRow(rowIdKey, rowOrIdToUpdate) ? rowOrIdToUpdate[rowIdKey] : rowOrIdToUpdate
+    const stateUpdate = applyRowUpdateByRowId<Row, RowIdKey>(rowIdKey, equalityByRowKey, rowIdToUpdate, rowUpdate)
+    setEditableRows(stateUpdate)
+  }
+
 // Hook
 
 export type UseTableEditor<Row, RowIdKey extends keyof Row> = {
@@ -379,10 +411,10 @@ export type UseTableEditor<Row, RowIdKey extends keyof Row> = {
     removeRows: (rows: Row[]) => void
     commitRows: (rows: Row[]) => void
     revertRows: (rows: Row[]) => void
+    updateRow: (rowUpdate: (prev: Row) => Row, row: Row | Row[RowIdKey]) => void
   }
   prim: {
     editableRows: Editable<Row>[]
-    updateRowCellByRowId: (rowKey: Row[RowIdKey]) => UpdateRowCell<Row>
     columns: Column<Row>[]
   }
 }
@@ -410,24 +442,21 @@ export const useTableEditor = <Row, RowIdKey extends keyof Row>(
     removed: editableRows.filter((editableRow) => editableRow[editableKey].isRemoved),
     new: editableRows.filter((editableRow) => editableRow[editableKey].isNew),
   }
+
+  const equalityByRowKey = getEqualityByRowKey(filterEditablecolumns(columns))
+  const updateRow = mkUpdateRow(rowIdKey, equalityByRowKey, setEditableRows)
+
   const edit = {
     initializeTable: mkInitializeTable(setEditableRows),
     insertRows: mkInsertRows(rowIdKey, setEditableRows),
     removeRows: mkRemoveRows(rowIdKey, setEditableRows),
     revertRows: mkRevertRows(rowIdKey, setEditableRows),
     commitRows: mkCommitRows(rowIdKey, setEditableRows),
+    updateRow,
   }
 
-  const updateRowCellByRowId = createMkUpdateRowCellByRowId(
-    rowIdKey,
-    setEditableRows,
-  )(getColEqualityByRowKey(filterEditablecolumns(columns)))
+  const prim = { editableRows, columns }
 
-  const prim = {
-    editableRows,
-    columns,
-    updateRowCellByRowId,
-  }
   return { rows, edit, prim }
 }
 

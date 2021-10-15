@@ -1,12 +1,16 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
-/**
- * @jest-environment jsdom
- */
 import '@testing-library/react'
 
 import { RenderResult, act, renderHook } from '@testing-library/react-hooks'
 
-import { Editable, UseTableEditor, getEditStatus, useTableEditor } from './useTableEditor'
+import {
+  Columns,
+  Editable,
+  UseTableEditor,
+  applyRowUpdateByRowId,
+  getEditStatus,
+  mkEditable,
+  useTableEditor,
+} from './useTableEditor'
 
 interface User {
   username: string
@@ -21,12 +25,21 @@ const testUsers: User[] = [
   { username: 'vader', fullName: ['Dark', 'Vader'], credits: 75 },
 ]
 
+const columns: Columns<User> = [
+  {
+    key: 'fullName',
+    eq: ([pristineFirst, pristineLast], [currentFirst, currentLast]) =>
+      pristineFirst === currentFirst && pristineLast === currentLast,
+  },
+]
+
 let hook: RenderResult<UseTableEditor<User, 'username'>>
 
 beforeEach(() => {
-  hook = renderHook(() => useTableEditor('username', [], testUsers)).result
+  hook = renderHook(() => useTableEditor('username', columns, testUsers)).result
 })
 
+// Shorthands for accessing and looking up editable rows.
 const editableRows = () => hook.current.prim.editableRows
 const editableRowByRowId = (username: string) => {
   const editableRow = editableRows().find((row) => row.username === username)
@@ -36,45 +49,18 @@ const editableRowByRowId = (username: string) => {
   return editableRow
 }
 
-const updateRowCell =
-  (rowId: string) =>
-  <ColumnKey extends keyof User>(columnKey: ColumnKey) =>
-  (cellUpdate: (prev: User[ColumnKey]) => User[ColumnKey]) =>
-    act(() => hook.current.prim.updateRowCellByRowId(rowId)(columnKey)(cellUpdate))
-
+// Shorthands for calling hook edit operations.
 const insertRows = (rows: User[]) => act(() => hook.current.edit.insertRows(rows))
 const removeRows = (editableRows: Editable<User>[]) => act(() => hook.current.edit.removeRows(editableRows))
 const commitRows = (editableRows: Editable<User>[]) => act(() => hook.current.edit.commitRows(editableRows))
 const revertRows = (editableRows: Editable<User>[]) => act(() => hook.current.edit.revertRows(editableRows))
+const updateRow = (rowUpdate: (prev: User) => User, row: User) => act(() => hook.current.edit.updateRow(rowUpdate, row))
 
-// TODO: Test combinations & operations multiple rows. Run tests on root test command (maybe ditch CRA tests).
-describe('prim.updateRowCellByRowId', () => {
-  test('update and commit', () => {
-    const rowCount = editableRows().length
-    updateRowCell('dan')('credits')((prev) => prev + 10)
-    expect(editableRowByRowId('dan')).toEqual(expect.objectContaining({ credits: 20 }))
-    expect(getEditStatus(editableRowByRowId('dan'))).toEqual(
-      expect.objectContaining({ isDirty: true, isNew: false, isRemoved: false }),
-    )
-    commitRows([editableRowByRowId('dan')])
-    expect(editableRows()).toHaveLength(rowCount)
-    expect(getEditStatus(editableRowByRowId('dan'))).toEqual(
-      expect.objectContaining({ isDirty: false, isNew: false, isRemoved: false }),
-    )
-  })
-
-  test('update and revert', () => {
-    const rowCount = editableRows().length
-    updateRowCell('dan')('credits')((prev) => prev + 10)
-    expect(editableRowByRowId('dan')).toEqual(expect.objectContaining({ credits: 20 }))
-    revertRows([editableRowByRowId('dan')])
-    expect(editableRows()).toHaveLength(rowCount)
-    expect(editableRowByRowId('dan')).toEqual(expect.objectContaining({ credits: 10 }))
-    expect(getEditStatus(editableRowByRowId('dan'))).toEqual(
-      expect.objectContaining({ isDirty: false, isNew: false, isRemoved: false }),
-    )
-  })
-})
+// TODO:
+// - Test combinations & operations multiple rows.
+// - Test hook.current.rows & prim.
+// - Test cell updater (is now local to EditableTable).
+// - Restrict package exports from an index.ts module, now useTableEditor exports internals for testing.
 
 describe('edit.insert', () => {
   test('insert and commit', () => {
@@ -123,6 +109,47 @@ describe('edit.remove', () => {
       expect.objectContaining({ isDirty: false, isNew: false, isRemoved: true }),
     )
     revertRows([editableRowByRowId('dave')])
+    expect(editableRows()).toHaveLength(rowCount)
+    expect(getEditStatus(editableRowByRowId('dave'))).toEqual(
+      expect.objectContaining({ isDirty: false, isNew: false, isRemoved: false }),
+    )
+  })
+})
+
+describe('updateRowByRowId', () => {
+  test('update and commit', () => {
+    const editableTestUsers = testUsers.map(mkEditable)
+    const rowUpdate: (prev: User) => User = (prev) => ({ ...prev, credits: prev.credits + 1 })
+
+    const updatedRows = applyRowUpdateByRowId('username', {}, 'dave', rowUpdate)(editableTestUsers)
+    expect(updatedRows).toHaveLength(4)
+  })
+})
+
+describe('edit.updateRow', () => {
+  test('update and commit', () => {
+    const rowCount = editableRows().length
+    updateRow((prev) => ({ ...prev, credits: -42 }), editableRowByRowId('dave'))
+    expect(editableRowByRowId('dave')).toEqual(expect.objectContaining({ credits: -42 }))
+    expect(getEditStatus(editableRowByRowId('dave'))).toEqual(
+      expect.objectContaining({ isDirty: true, isNew: false, isRemoved: false }),
+    )
+    commitRows([editableRowByRowId('dave')])
+    expect(editableRows()).toHaveLength(rowCount)
+    expect(getEditStatus(editableRowByRowId('dave'))).toEqual(
+      expect.objectContaining({ isDirty: false, isNew: false, isRemoved: false }),
+    )
+  })
+
+  test('update and restore (custom equality)', () => {
+    const rowCount = editableRows().length
+    updateRow((prev) => ({ ...prev, fullName: ['Chiquitaa', 'Dave'] }), editableRowByRowId('dave'))
+    expect(editableRowByRowId('dave').fullName).toEqual(['Chiquitaa', 'Dave'])
+    expect(getEditStatus(editableRowByRowId('dave'))).toEqual(
+      expect.objectContaining({ isDirty: true, isNew: false, isRemoved: false }),
+    )
+
+    updateRow((prev) => ({ ...prev, fullName: ['Chiquita', 'Dave'] }), editableRowByRowId('dave'))
     expect(editableRows()).toHaveLength(rowCount)
     expect(getEditStatus(editableRowByRowId('dave'))).toEqual(
       expect.objectContaining({ isDirty: false, isNew: false, isRemoved: false }),
